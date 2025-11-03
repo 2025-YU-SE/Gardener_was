@@ -115,7 +115,7 @@ public class AiFeedbackService {
             // JSON 파싱 (JSONArray length()로 변경)
             JSONObject json = new JSONObject(response);
             JSONArray choices = json.getJSONArray("choices");
-            if (choices.length() == 0) return "AI 응답이 없습니다.";
+            if (choices.isEmpty()) return "AI 응답이 없습니다.";
 
             JSONObject message = choices.getJSONObject(0).getJSONObject("message");
             String content = message.optString("content", "AI 응답을 파싱하지 못했습니다.");
