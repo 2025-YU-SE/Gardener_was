@@ -66,12 +66,29 @@ public class Post {
     @Column(nullable = false)
     private int scrapCount = 0;
 
+    // 🔹 1:N 매핑 추가
     @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Feedback> feedbacks = new ArrayList<>();
+
+    @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<PostLike> likes = new ArrayList<>();
+
+    @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<PostScrap> scraps = new ArrayList<>();
 
     @Transient
     public int getFeedbackCount() {
         return (feedbacks != null) ? feedbacks.size() : 0;
+    }
+
+    @Transient
+    public int getLikeCount() {
+        return (likes != null) ? likes.size() : 0;
+    }
+
+    @Transient
+    public int getScrapCount() {
+        return (scraps != null) ? scraps.size() : 0;
     }
 
     @Column(updatable = false, nullable = false)

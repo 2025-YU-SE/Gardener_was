@@ -5,6 +5,8 @@ import java.util.List;
 
 import jakarta.validation.Valid;
 
+import lombok.RequiredArgsConstructor;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -13,8 +15,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
-
-import lombok.RequiredArgsConstructor;
 
 import com.example.codegardener.post.dto.PostRequestDto;
 import com.example.codegardener.post.dto.PostResponseDto;
@@ -48,8 +48,8 @@ public class PostController {
 
     /** 게시물 상세 */
     @GetMapping("/{id}")
-    public PostResponseDto get(@PathVariable Long id) {
-        return postService.get(id);
+    public ResponseEntity<PostResponseDto> get(@PathVariable Long id) {
+        return ResponseEntity.ok(postService.get(id));
     }
 
     /** 페이징 목록 — contentsType: null=전체 / true=개발 / false=코테 */
@@ -57,15 +57,15 @@ public class PostController {
     public ResponseEntity<Page<PostResponseDto>> getPostList(
             @RequestParam(required = false) Boolean contentsType,
             @PageableDefault(size = 10, sort = "createdAt", direction = Sort.Direction.DESC)
-            Pageable pageable) {
-
+            Pageable pageable
+    ) {
         Page<PostResponseDto> postPage = postService.getPostList(contentsType, pageable);
         return ResponseEntity.ok(postPage);
     }
 
     // ====================== UPDATE ======================
     @PutMapping("/{id}")
-    public PostResponseDto update(
+    public ResponseEntity<PostResponseDto> update(
             @PathVariable Long id,
             @Valid @RequestBody PostRequestDto dto,
             @AuthenticationPrincipal UserDetails userDetails
@@ -73,7 +73,8 @@ public class PostController {
         if (userDetails == null) {
             throw new IllegalArgumentException("수정 권한 인증이 필요합니다.");
         }
-        return postService.update(id, dto, userDetails.getUsername());
+        PostResponseDto updated = postService.update(id, dto, userDetails.getUsername());
+        return ResponseEntity.ok(updated);
     }
 
     // ====================== DELETE ======================
@@ -91,7 +92,7 @@ public class PostController {
 
     // ====================== SEARCH (통합 검색) ======================
     @GetMapping("/search")
-    public Page<PostResponseDto> searchUnified(
+    public ResponseEntity<Page<PostResponseDto>> searchUnified(
             @RequestParam(required = false) String q,
             @RequestParam(name = "languages", required = false) List<String> languages,
             @RequestParam(name = "langs", required = false) String langsCsv,
@@ -111,25 +112,30 @@ public class PostController {
         int safePage = Math.max(page, 0);
         int safeSize = Math.min(Math.max(size, 1), 50);
 
-        return postService.discoverAdvanced(
+        Page<PostResponseDto> result = postService.discoverAdvanced(
                 q, languages, langsCsv, stacks, stacksCsv, contentsType,
                 safePage, safeSize, sort
         );
+
+        return ResponseEntity.ok(result);
     }
 
     // ====================== AI 피드백 ======================
     @PostMapping("/{id}/ai")
-    public PostResponseDto regenerateAi(
+    public ResponseEntity<PostResponseDto> regenerateAi(
             @PathVariable Long id,
             @RequestParam(required = false) Long requesterId
     ) {
-        return postService.generateAiFeedback(id, requesterId);
+        PostResponseDto dto = postService.generateAiFeedback(id, requesterId);
+        return ResponseEntity.ok(dto);
     }
 
     @GetMapping("/{id}/ai")
-    public String getAiFeedback(@PathVariable Long id) {
+    public ResponseEntity<String> getAiFeedback(@PathVariable Long id) {
         String feedback = postService.getAiFeedback(id);
-        return (feedback != null) ? feedback : "AI 피드백이 아직 생성되지 않았습니다.";
+        return ResponseEntity.ok(
+                (feedback != null) ? feedback : "AI 피드백이 아직 생성되지 않았습니다."
+        );
     }
 
     // ====================== 좋아요/스크랩 ======================
@@ -147,7 +153,11 @@ public class PostController {
 
     @GetMapping("/my-scraps")
     public ResponseEntity<List<PostResponseDto>> getMyScraps(
-            @AuthenticationPrincipal UserDetails userDetails) {
+            @AuthenticationPrincipal UserDetails userDetails
+    ) {
+        if (userDetails == null) {
+            throw new IllegalArgumentException("로그인이 필요합니다.");
+        }
 
         String username = userDetails.getUsername();
         List<PostResponseDto> scrappedPosts = postService.getMyScrappedPosts(username);

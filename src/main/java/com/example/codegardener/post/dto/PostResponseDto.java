@@ -1,73 +1,61 @@
 package com.example.codegardener.post.dto;
 
 import com.example.codegardener.post.domain.Post;
-import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
 
 import java.time.LocalDateTime;
 
 @Getter
-@Setter
-@NoArgsConstructor
-@AllArgsConstructor
+@Builder
 public class PostResponseDto {
 
-    private Long userId;
-    private Long postId;
+    private final Long userId;
+    private final Long postId;
 
-    private String title;
-    private String content;
+    private final String title;
+    private final String content;
 
-    private String languages;
-    private String stacks;
+    private final String languages;
+    private final String stacks;
 
-    private String code;
-    private String summary;
-    private Boolean contentsType;
+    private final String code;
+    private final String summary;
+    private final Boolean contentsType;
 
-    private String githubRepoUrl;
-    private String problemStatement;
+    private final String githubRepoUrl;
+    private final String problemStatement;
 
-    private int likesCount;
-    private int views;
-    private int scrapCount;
-    private int feedbackCount;
+    private final int likesCount;
+    private final int views;
+    private final int scrapCount;
+    private final int feedbackCount;
 
-    private LocalDateTime createdAt;
-    private LocalDateTime modifiedAt;
+    private final LocalDateTime createdAt;
+    private final LocalDateTime modifiedAt;
 
-    private String aiFeedback;
+    private final String aiFeedback;
 
     public static PostResponseDto from(Post post) {
-        PostResponseDto dto = new PostResponseDto();
-        dto.setPostId(post.getPostId());
-        dto.setUserId(post.getUser().getId());
-
-        dto.setTitle(post.getTitle());
-        dto.setContent(post.getContent());
-
-        dto.setLanguages(post.getLangTags());
-        dto.setStacks(post.getStackTags());
-
-        dto.setCode(post.getCode());
-        dto.setSummary(post.getSummary());
-        dto.setContentsType(post.getContentsType());
-
-        dto.setGithubRepoUrl(post.getGithubRepoUrl());
-        dto.setProblemStatement(post.getProblemStatement());
-
-        dto.setLikesCount(post.getLikesCount());
-        dto.setViews(post.getViews());
-        dto.setScrapCount(post.getScrapCount());
-        dto.setFeedbackCount(post.getFeedbackCount());
-
-        dto.setCreatedAt(post.getCreatedAt());
-        dto.setModifiedAt(post.getModifiedAt());
-
-        dto.setAiFeedback(post.getAiFeedback());
-
-        return dto;
+        return PostResponseDto.builder()
+                .postId(post.getPostId())
+                .userId(post.getUser().getId())
+                .title(post.getTitle())
+                .content(post.getContent())
+                .languages(post.getLangTags())
+                .stacks(post.getStackTags())
+                .code(post.getCode())
+                .summary(post.getSummary())
+                .contentsType(post.getContentsType())
+                .githubRepoUrl(post.getGithubRepoUrl())
+                .problemStatement(post.getProblemStatement())
+                .likesCount(post.getLikesCount())
+                .views(post.getViews())
+                .scrapCount(post.getScrapCount())
+                .feedbackCount(post.getFeedbackCount())
+                .createdAt(post.getCreatedAt())
+                .modifiedAt(post.getModifiedAt())
+                .aiFeedback(post.getAiFeedback())
+                .build();
     }
 }

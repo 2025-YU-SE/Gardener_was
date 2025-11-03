@@ -33,7 +33,6 @@ public class PostService {
     private final PostLikeRepository postLikeRepository;
     private final PostScrapRepository postScrapRepository;
 
-
     // ====================== CRUD ======================
 
     @Transactional
@@ -274,19 +273,23 @@ public class PostService {
         return "%" + t + "%";
     }
 
+    // ====================== 좋아요 / 스크랩 ======================
+
     @Transactional
-    public void toggleLike(PostActionDto dto) {
-        User user = userRepository.findById(dto.getUserId())
-                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다. ID: " + dto.getUserId()));
-        Post post = postRepository.findById(dto.getPostId())
-                .orElseThrow(() -> new IllegalArgumentException("게시물이 존재하지 않습니다. ID: " + dto.getPostId()));
+    public void toggleLike(Long userId, Long postId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다. ID: " + userId));
+        Post post = postRepository.findById(postId)
+                .orElseThrow(() -> new IllegalArgumentException("게시물이 존재하지 않습니다. ID: " + postId));
 
         Optional<PostLike> existingLike = postLikeRepository.findByUserAndPost(user, post);
 
         if (existingLike.isPresent()) {
+            // 이미 좋아요가 있으면 취소
             postLikeRepository.delete(existingLike.get());
             post.setLikesCount(Math.max(0, post.getLikesCount() - 1));
         } else {
+            // 없으면 추가
             PostLike newLike = new PostLike();
             newLike.setUser(user);
             newLike.setPost(post);
@@ -296,18 +299,20 @@ public class PostService {
     }
 
     @Transactional
-    public void toggleScrap(PostActionDto dto) {
-        User user = userRepository.findById(dto.getUserId())
-                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다. ID: " + dto.getUserId()));
-        Post post = postRepository.findById(dto.getPostId())
-                .orElseThrow(() -> new IllegalArgumentException("게시물이 존재하지 않습니다. ID: " + dto.getPostId()));
+    public void toggleScrap(Long userId, Long postId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다. ID: " + userId));
+        Post post = postRepository.findById(postId)
+                .orElseThrow(() -> new IllegalArgumentException("게시물이 존재하지 않습니다. ID: " + postId));
 
         Optional<PostScrap> existingScrap = postScrapRepository.findByUserAndPost(user, post);
 
         if (existingScrap.isPresent()) {
+            // 이미 스크랩돼 있으면 취소
             postScrapRepository.delete(existingScrap.get());
             post.setScrapCount(Math.max(0, post.getScrapCount() - 1));
         } else {
+            // 없으면 추가
             PostScrap newScrap = new PostScrap();
             newScrap.setUser(user);
             newScrap.setPost(post);
@@ -341,7 +346,6 @@ public class PostService {
     @Transactional(readOnly = true)
     public List<PostResponseDto> getPostsByUserId(Long userId) {
         List<Post> posts = postRepository.findByUserIdOrderByCreatedAtDesc(userId);
-        // stream()과 map()을 사용하여 각 Post 객체를 PostSimpleResponseDto로 변환
         return posts.stream()
                 .map(PostResponseDto::from)
                 .collect(Collectors.toList());
@@ -357,27 +361,15 @@ public class PostService {
             postPage = postRepository.findByContentsType(contentsType, pageable);
         }
 
-        // 조회된 Page<Post>를 Page<PostResponseDto>로 변환하여 반환
         return postPage.map(PostResponseDto::from);
     }
 
+    // 🔥 인기 게시글 조회 (likesCount 기준 Top4) – 하나만 남김
     @Transactional(readOnly = true)
     public List<PostResponseDto> getPopularPosts(Boolean contentsType) {
         List<Post> popularPosts = postRepository.findTop4ByContentsTypeOrderByLikesCountDesc(contentsType);
         return popularPosts.stream()
-                .map(PostResponseDto::from) // Post를 간단한 DTO로 변환
-                .collect(Collectors.toList());
-    }
-    // PostService.java
-    @Transactional(readOnly = true)
-    public List<PostResponseDto> getPopularPosts(Boolean contentsType) {
-        Sort sort = Sort.by(Sort.Direction.DESC, "views"); // 조회수 기준
-        Pageable pageable = PageRequest.of(0, 5, sort);    // 상위 5개만 가져오기
-
-        Page<Post> posts = postRepository.findByContentsType(contentsType, pageable);
-
-        return posts.stream()
-                .map(PostResponseDto::fromEntity)
+                .map(PostResponseDto::from)
                 .collect(Collectors.toList());
     }
 }
