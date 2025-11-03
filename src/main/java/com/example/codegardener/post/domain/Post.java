@@ -66,11 +66,13 @@ public class Post {
     @Column(nullable = false)
     private int scrapCount = 0;
 
-    @Column(nullable = false)
-    private int feedbackCount = 0;
-
     @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Feedback> feedbacks = new ArrayList<>();
+
+    @Transient
+    public int getFeedbackCount() {
+        return (feedbacks != null) ? feedbacks.size() : 0;
+    }
 
     @Column(updatable = false, nullable = false)
     private LocalDateTime createdAt;

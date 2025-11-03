@@ -16,7 +16,6 @@ import org.springframework.web.bind.annotation.*;
 
 import lombok.RequiredArgsConstructor;
 
-import com.example.codegardener.post.dto.PostActionDto;
 import com.example.codegardener.post.dto.PostRequestDto;
 import com.example.codegardener.post.dto.PostResponseDto;
 import com.example.codegardener.post.service.PostService;
@@ -54,7 +53,6 @@ public class PostController {
     }
 
     /** 페이징 목록 — contentsType: null=전체 / true=개발 / false=코테 */
-    // 👉 루트 GET은 이 메소드 '하나만' 사용
     @GetMapping
     public ResponseEntity<Page<PostResponseDto>> getPostList(
             @RequestParam(required = false) Boolean contentsType,
@@ -136,14 +134,14 @@ public class PostController {
 
     // ====================== 좋아요/스크랩 ======================
     @PostMapping("/likes")
-    public ResponseEntity<Void> toggleLike(@RequestBody PostActionDto postActionDto) {
-        postService.toggleLike(postActionDto);
+    public ResponseEntity<Void> toggleLike(@RequestBody PostResponseDto dto) {
+        postService.toggleLike(dto.getUserId(), dto.getPostId());
         return ResponseEntity.ok().build();
     }
 
     @PostMapping("/scraps")
-    public ResponseEntity<Void> toggleScrap(@RequestBody PostActionDto postActionDto) {
-        postService.toggleScrap(postActionDto);
+    public ResponseEntity<Void> toggleScrap(@RequestBody PostResponseDto dto) {
+        postService.toggleScrap(dto.getUserId(), dto.getPostId());
         return ResponseEntity.ok().build();
     }
 

@@ -19,6 +19,7 @@ public class UserResponseDto {
     private final Integer postCount;
     private final Integer totalFeedbackCount;
     private final Integer adoptedFeedbackCount;
+    private final String lastAttendanceDate;
 
     public UserResponseDto(User user) {
 
@@ -34,6 +35,7 @@ public class UserResponseDto {
             this.postCount = user.getUserProfile().getPostCount();
             this.totalFeedbackCount = user.getUserProfile().getTotalFeedbackCount();
             this.adoptedFeedbackCount = user.getUserProfile().getAdoptedFeedbackCount();
+            this.lastAttendanceDate = user.getUserProfile().getLastAttendanceDate();
         } else {
             this.userPicture = null;
             this.points = 0;
@@ -41,6 +43,7 @@ public class UserResponseDto {
             this.postCount = 0;
             this.totalFeedbackCount = 0;
             this.adoptedFeedbackCount = 0;
+            this.lastAttendanceDate = null;
         }
     }
 }

@@ -4,7 +4,6 @@ import com.example.codegardener.ai.service.AiFeedbackService;
 import com.example.codegardener.post.domain.Post;
 import com.example.codegardener.post.domain.PostLike;
 import com.example.codegardener.post.domain.PostScrap;
-import com.example.codegardener.post.dto.PostActionDto;
 import com.example.codegardener.post.dto.PostRequestDto;
 import com.example.codegardener.post.dto.PostResponseDto;
 import com.example.codegardener.post.repository.PostLikeRepository;
@@ -367,6 +366,18 @@ public class PostService {
         List<Post> popularPosts = postRepository.findTop4ByContentsTypeOrderByLikesCountDesc(contentsType);
         return popularPosts.stream()
                 .map(PostResponseDto::from) // Post를 간단한 DTO로 변환
+                .collect(Collectors.toList());
+    }
+    // PostService.java
+    @Transactional(readOnly = true)
+    public List<PostResponseDto> getPopularPosts(Boolean contentsType) {
+        Sort sort = Sort.by(Sort.Direction.DESC, "views"); // 조회수 기준
+        Pageable pageable = PageRequest.of(0, 5, sort);    // 상위 5개만 가져오기
+
+        Page<Post> posts = postRepository.findByContentsType(contentsType, pageable);
+
+        return posts.stream()
+                .map(PostResponseDto::fromEntity)
                 .collect(Collectors.toList());
     }
 }

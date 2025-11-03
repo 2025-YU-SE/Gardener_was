@@ -76,4 +76,5 @@ public interface PostRepository extends JpaRepository<Post, Long> {
 
     // 특정 타입의 게시물 중 좋아요가 많은 상위 4개를 조회
     List<Post> findTop4ByContentsTypeOrderByLikesCountDesc(Boolean contentsType);
+
 }

@@ -30,8 +30,6 @@ public class PostLike {
     @JoinColumn(name = "post_id", nullable = false)
     private Post post;
 
-
-
     @CreationTimestamp
     @Column(name = "created_at")
     private LocalDateTime createdAt;
