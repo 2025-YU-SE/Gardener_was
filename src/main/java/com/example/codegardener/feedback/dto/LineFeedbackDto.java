@@ -21,7 +21,7 @@ public class LineFeedbackDto {
     public static LineFeedbackDto fromEntity(LineFeedback entity) {
         return LineFeedbackDto.builder()
                 .lineFeedbackId(entity.getLineFeedbackId())
-                .userId(entity.getUser().getId())
+                .userId(entity.getUser().getUserId())
                 .lineNumber(entity.getLineNumber())
                 .endLineNumber(entity.getEndLineNumber())
                 .content(entity.getContent())

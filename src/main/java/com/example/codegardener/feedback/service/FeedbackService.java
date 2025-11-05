@@ -81,7 +81,7 @@ public class FeedbackService {
         Feedback feedback = feedbackRepository.findById(feedbackId)
                 .orElseThrow(() -> new IllegalArgumentException("피드백을 찾을 수 없습니다."));
 
-        if (!feedback.getUser().getId().equals(currentUser.getId())) {
+        if (!feedback.getUser().getUserId().equals(currentUser.getUserId())) {
             throw new IllegalStateException("본인만 피드백을 수정할 수 있습니다.");
         }
         if (feedback.getAdoptedTF()) {
@@ -106,10 +106,10 @@ public class FeedbackService {
             throw new IllegalArgumentException("게시물을 찾을 수 없습니다.");
         }
 
-        Long ownerId = feedback.getUser().getId();
+        Long ownerId = feedback.getUser().getUserId();
 
         boolean isAdmin = currentUser.getRole() == Role.ADMIN;
-        boolean isOwner = Objects.equals(ownerId, currentUser.getId());
+        boolean isOwner = Objects.equals(ownerId, currentUser.getUserId());
 
         if (!isOwner && !isAdmin) { // 본인도 아니고 관리자도 아니면
             throw new IllegalStateException("삭제 권한이 없습니다.");
@@ -176,7 +176,7 @@ public class FeedbackService {
         if (post == null) {
             throw new IllegalArgumentException("게시물을 찾을 수 없습니다.");
         }
-        if (!post.getUser().getId().equals(postAuthor.getId())) {
+        if (!post.getUser().getUserId().equals(postAuthor.getUserId())) {
             throw new AccessDeniedException("게시물 작성자만 피드백을 채택할 수 있습니다.");
         }
 
@@ -240,7 +240,7 @@ public class FeedbackService {
             throw new IllegalStateException("잘못된 피드백 ID입니다.");
         }
 
-        if (!lineFeedback.getUser().getId().equals(currentUser.getId())) { // 2. 변경
+        if (!lineFeedback.getUser().getUserId().equals(currentUser.getUserId())) { // 2. 변경
             throw new IllegalStateException("본인만 수정할 수 있습니다.");
         }
 
@@ -259,7 +259,7 @@ public class FeedbackService {
             throw new IllegalStateException("잘못된 피드백 ID입니다.");
         }
 
-        if (!lineFeedback.getUser().getId().equals(currentUser.getId())) { // 2. 변경
+        if (!lineFeedback.getUser().getUserId().equals(currentUser.getUserId())) { // 2. 변경
             throw new IllegalStateException("본인만 삭제할 수 있습니다.");
         }
 

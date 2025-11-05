@@ -39,7 +39,7 @@ public class PostResponseDto {
     public static PostResponseDto fromEntity(Post post) {
         return PostResponseDto.builder()
                 .postId(post.getPostId())
-                .userId(post.getUser().getId())
+                .userId(post.getUser().getUserId())
                 .title(post.getTitle())
                 .content(post.getContent())
                 .languages(post.getLangTags())

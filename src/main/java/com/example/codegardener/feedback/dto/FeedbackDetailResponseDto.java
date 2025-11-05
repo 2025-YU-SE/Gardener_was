@@ -30,7 +30,7 @@ public class FeedbackDetailResponseDto {
         return FeedbackDetailResponseDto.builder()
                 .feedbackId(feedback.getFeedbackId())
                 .postId(feedback.getPost().getPostId())
-                .userId(feedback.getUser().getId())
+                .userId(feedback.getUser().getUserId())
                 .content(feedback.getContent())
                 .rating(feedback.getRating())
                 .adoptedTF(feedback.getAdoptedTF())

@@ -21,20 +21,20 @@ public interface LeaderboardRepository extends JpaRepository<Feedback, Long> {
     }
 
     // 주간 등록 수 TOP3
-    @Query("SELECT f.user.id AS userId, COUNT(f) AS count FROM Feedback f WHERE f.createdAt >= :startDate GROUP BY f.user.id ORDER BY count DESC LIMIT 3")
+    @Query("SELECT f.user.userId AS userId, COUNT(f) AS count FROM Feedback f WHERE f.createdAt >= :startDate GROUP BY f.user.userId ORDER BY count DESC LIMIT 3")
     List<UserFeedbackCount> findTop3UsersByFeedbackCount(@Param("startDate") LocalDateTime startDate);
 
     // 주간 등록 수 페이징
-    @Query(value = "SELECT f.user.id AS userId, COUNT(f) AS count FROM Feedback f WHERE f.createdAt >= :startDate GROUP BY f.user.id ORDER BY count DESC",
-            countQuery = "SELECT COUNT(DISTINCT f.user.id) FROM Feedback f WHERE f.createdAt >= :startDate")
+    @Query(value = "SELECT f.user.userId AS userId, COUNT(f) AS count FROM Feedback f WHERE f.createdAt >= :startDate GROUP BY f.user.userId ORDER BY count DESC",
+            countQuery = "SELECT COUNT(DISTINCT f.user.userId) FROM Feedback f WHERE f.createdAt >= :startDate")
     Page<UserFeedbackCount> findUsersByFeedbackCount(@Param("startDate") LocalDateTime startDate, Pageable pageable);
 
     // 주간 채택 수 TOP3
-    @Query("SELECT f.user.id AS userId, COUNT(f) AS count FROM Feedback f WHERE f.adoptedTF = true AND f.createdAt >= :startDate GROUP BY f.user.id ORDER BY count DESC LIMIT 3")
+    @Query("SELECT f.user.userId AS userId, COUNT(f) AS count FROM Feedback f WHERE f.adoptedTF = true AND f.createdAt >= :startDate GROUP BY f.user.userId ORDER BY count DESC LIMIT 3")
     List<UserFeedbackCount> findTop3UsersByAdoptedFeedbackCount(@Param("startDate") LocalDateTime startDate);
 
     // 주간 채택 수 페이징
-    @Query(value = "SELECT f.user.id AS userId, COUNT(f) AS count FROM Feedback f WHERE f.adoptedTF = true AND f.createdAt >= :startDate GROUP BY f.user.id ORDER BY count DESC",
-            countQuery = "SELECT COUNT(DISTINCT f.user.id) FROM Feedback f WHERE f.adoptedTF = true AND f.createdAt >= :startDate")
+    @Query(value = "SELECT f.user.userId AS userId, COUNT(f) AS count FROM Feedback f WHERE f.adoptedTF = true AND f.createdAt >= :startDate GROUP BY f.user.userId ORDER BY count DESC",
+            countQuery = "SELECT COUNT(DISTINCT f.user.userId) FROM Feedback f WHERE f.adoptedTF = true AND f.createdAt >= :startDate")
     Page<UserFeedbackCount> findUsersByAdoptedFeedbackCount(@Param("startDate") LocalDateTime startDate, Pageable pageable);
 }

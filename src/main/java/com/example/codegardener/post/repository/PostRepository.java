@@ -12,7 +12,8 @@ import java.util.List;
 public interface PostRepository extends JpaRepository<Post, Long> {
 
     // 1) 키워드 단건 검색 (제목/내용/작성자) — 파라미터 1개 (LIKE용)
-    @Query(value = """
+    @Query(
+            value = """
         SELECT p.*
         FROM post p
         JOIN `user` u ON u.user_id = p.user_id
@@ -21,7 +22,19 @@ public interface PostRepository extends JpaRepository<Post, Long> {
            OR LOWER(p.content)   LIKE :qLike
            OR LOWER(u.user_name) LIKE :qLike
         ORDER BY p.created_at DESC
-        """, nativeQuery = true)
+        """,
+            countQuery = """
+        SELECT COUNT(*)
+        FROM post p
+        JOIN `user` u ON u.user_id = p.user_id
+        WHERE (:qLike IS NULL)
+           OR LOWER(p.title)     LIKE :qLike
+           OR LOWER(p.content)   LIKE :qLike
+           OR LOWER(u.user_name) LIKE :qLike
+        """,
+            nativeQuery = true
+    )
+    Page<Post> searchSimple(@Param("qLike") String qLike, Pageable pageable);
 
     // 2) 탭 필터
     Page<Post> findByContentsType(Boolean contentsType, Pageable pageable);
@@ -72,9 +85,11 @@ public interface PostRepository extends JpaRepository<Post, Long> {
             @Param("sort") String sort,
             Pageable pageable
     );
-    List<Post> findByUserIdOrderByCreatedAtDesc(Long userId);
+
+    // 🔥 여기가 핵심 수정 포인트
+    // Post.user.userId 기준으로 정렬
+    List<Post> findByUser_UserIdOrderByCreatedAtDesc(Long userId);
 
     // 특정 타입의 게시물 중 좋아요가 많은 상위 4개를 조회
     List<Post> findTop4ByContentsTypeOrderByLikesCountDesc(Boolean contentsType);
-
 }

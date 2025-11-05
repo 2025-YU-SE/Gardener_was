@@ -111,9 +111,9 @@ public class PostService {
         Post p = postRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("게시물이 존재하지 않습니다."));
 
-        Long ownerId = (p.getUser() != null) ? p.getUser().getId() : null;
+        Long ownerId = (p.getUser() != null) ? p.getUser().getUserId() : null;
 
-        if (!Objects.equals(ownerId, currentUser.getId())) {
+        if (!Objects.equals(ownerId, currentUser.getUserId())) {
             throw new IllegalStateException("수정 권한이 없습니다.");
         }
 
@@ -139,10 +139,10 @@ public class PostService {
         Post p = postRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("게시물이 존재하지 않습니다."));
 
-        Long ownerId = (p.getUser() != null) ? p.getUser().getId() : null;
+        Long ownerId = (p.getUser() != null) ? p.getUser().getUserId() : null;
 
         boolean isAdmin = currentUser.getRole() == Role.ADMIN;
-        boolean isOwner = Objects.equals(ownerId, currentUser.getId());
+        boolean isOwner = Objects.equals(ownerId, currentUser.getUserId());
 
         if (!isOwner && !isAdmin) { // 본인도 아니고 관리자도 아니면
             throw new IllegalStateException("삭제 권한이 없습니다.");
@@ -341,7 +341,7 @@ public class PostService {
     // 특정 사용자가 등록한 게시물 조회
     @Transactional(readOnly = true)
     public List<PostResponseDto> getPostsByUserId(Long userId) {
-        List<Post> posts = postRepository.findByUserIdOrderByCreatedAtDesc(userId);
+        List<Post> posts = postRepository.findByUser_UserIdOrderByCreatedAtDesc(userId);
         return posts.stream()
                 .map(PostResponseDto::fromEntity)
                 .collect(Collectors.toList());

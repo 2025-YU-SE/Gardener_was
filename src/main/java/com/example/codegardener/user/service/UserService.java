@@ -69,7 +69,7 @@ public class UserService {
 
         User savedUser = userRepository.save(newUser);
         log.info("New user signed up: {} (ID: {}), initial points: 1000, grade: {}",
-                savedUser.getUserName(), savedUser.getId(), savedUser.getUserProfile().getGrade());
+                savedUser.getUserName(), savedUser.getUserId(), savedUser.getUserProfile().getGrade());
         return UserResponseDto.fromEntity(savedUser);
     }
 
@@ -147,7 +147,7 @@ public class UserService {
         List<User> users = userRepository.findAllByIdWithProfile(userIds);
 
         return userIds.stream()
-                .flatMap(id -> users.stream().filter(u -> u.getId().equals(id)))
+                .flatMap(id -> users.stream().filter(u -> u.getUserId().equals(id)))
                 .map(UserResponseDto::fromEntity)
                 .collect(Collectors.toList());
     }
@@ -163,7 +163,7 @@ public class UserService {
         }
 
         log.info("User '{}' (userId={}) is deleting their own account (Soft Delete).",
-                currentUser.getUserName(), currentUser.getId());
+                currentUser.getUserName(), currentUser.getUserId());
 
         anonymizeAndSoftDelete(currentUser);
     }
@@ -255,7 +255,7 @@ public class UserService {
         User userToDelete = userRepository.findById(userIdToDelete)
                 .orElseThrow(() -> new IllegalArgumentException("삭제할 사용자를 찾을 수 없습니다. ID: " + userIdToDelete));
 
-        if (userToDelete.getId().equals(adminUser.getId())) {
+        if (userToDelete.getUserId().equals(adminUser.getUserId())) {
             throw new IllegalArgumentException("자기 자신을 삭제할 수 없습니다.");
         }
 
@@ -274,7 +274,7 @@ public class UserService {
         if (user == null) return;
 
         // 1. 개인 식별 정보(PII) 익명화
-        String uniqueId = user.getId().toString();
+        String uniqueId = user.getUserId().toString();
         user.setUserName("deleted_user_" + uniqueId); // (중복 방지)
         user.setEmail(uniqueId + "@deleted.user"); // (중복 방지)
         user.setPassword(passwordEncoder.encode(UUID.randomUUID().toString())); // 비밀번호 스크램블

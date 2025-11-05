@@ -22,6 +22,6 @@ public interface UserRepository extends JpaRepository<User, Long> {
             countQuery = "SELECT count(u) FROM User u")
     Page<User> findAllByOrderByUserProfile_PointsDesc(Pageable pageable);
 
-    @Query("SELECT u FROM User u LEFT JOIN FETCH u.userProfile WHERE u.id IN :userIds")
+    @Query("SELECT u FROM User u LEFT JOIN FETCH u.userProfile WHERE u.userId IN :userIds")
     List<User> findAllByIdWithProfile(@Param("userIds") List<Long> userIds);
 }

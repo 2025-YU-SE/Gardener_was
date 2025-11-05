@@ -19,7 +19,7 @@ public class FeedbackCommentDto {
     public static FeedbackCommentDto fromEntity(FeedbackComment comment) {
         return FeedbackCommentDto.builder()
                 .commentId(comment.getCommentId())
-                .userId(comment.getUser().getId())
+                .userId(comment.getUser().getUserId())
                 .content(comment.getContent())
                 .createdAt(comment.getCreatedAt())
                 .build();

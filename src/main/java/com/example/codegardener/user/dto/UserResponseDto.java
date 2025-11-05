@@ -11,7 +11,7 @@ import java.time.LocalDate;
 @Getter
 public class UserResponseDto {
 
-    private final Long id;
+    private final Long userId;
     private final String userName;
     private final String email;
     private final Role role;
@@ -25,7 +25,7 @@ public class UserResponseDto {
     private final LocalDate lastAttendanceDate;
 
     private UserResponseDto(User user) {
-        this.id = user.getId();
+        this.userId = user.getUserId();
         this.userName = user.getUserName();
         this.email = user.getEmail();
         this.role = user.getRole();
