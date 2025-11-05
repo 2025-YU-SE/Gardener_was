@@ -52,8 +52,8 @@ public class FeedbackService {
                 .orElseThrow(() -> new IllegalArgumentException("게시물을 찾을 수 없습니다."));
 
         Feedback feedback = Feedback.builder()
-                .postId(dto.getPostId())
-                .userId(currentUser.getId())
+                .post(post)
+                .user(currentUser)
                 .content(dto.getContent())
                 .rating(dto.getRating())
                 .adoptedTF(false)
@@ -81,7 +81,7 @@ public class FeedbackService {
         Feedback feedback = feedbackRepository.findById(feedbackId)
                 .orElseThrow(() -> new IllegalArgumentException("피드백을 찾을 수 없습니다."));
 
-        if (!feedback.getUserId().equals(currentUser.getId())) {
+        if (!feedback.getUser().getId().equals(currentUser.getId())) {
             throw new IllegalStateException("본인만 피드백을 수정할 수 있습니다.");
         }
         if (feedback.getAdoptedTF()) {
@@ -101,10 +101,12 @@ public class FeedbackService {
         Feedback feedback = feedbackRepository.findById(feedbackId)
                 .orElseThrow(() -> new IllegalArgumentException("피드백을 찾을 수 없습니다."));
 
-        Post post = postRepository.findById(feedback.getPostId())
-                .orElseThrow(() -> new IllegalArgumentException("게시물을 찾을 수 없습니다."));
+        Post post = feedback.getPost();
+        if (post == null) {
+            throw new IllegalArgumentException("게시물을 찾을 수 없습니다.");
+        }
 
-        Long ownerId = feedback.getUserId();
+        Long ownerId = feedback.getUser().getId();
 
         boolean isAdmin = currentUser.getRole() == Role.ADMIN;
         boolean isOwner = Objects.equals(ownerId, currentUser.getId());
@@ -131,7 +133,7 @@ public class FeedbackService {
 
     // ✅ 게시물별 피드백 목록 조회
     public List<FeedbackResponseDto> getFeedbackListByPost(Long postId) {
-        return feedbackRepository.findByPostId(postId).stream()
+        return feedbackRepository.findByPost_PostId(postId).stream()
                 .map(FeedbackResponseDto::fromEntity)
                 .collect(Collectors.toList());
     }
@@ -139,13 +141,11 @@ public class FeedbackService {
     // ✅ 좋아요 토글
     public String toggleLike(Long feedbackId, String currentUsername) {
         User currentUser = findUserByUsername(currentUsername);
-        Long userId = currentUser.getId();
 
         Feedback feedback = feedbackRepository.findById(feedbackId)
                 .orElseThrow(() -> new IllegalArgumentException("피드백을 찾을 수 없습니다."));
 
-        Optional<FeedbackLike> existingLike =
-                feedbackLikesRepository.findByUserIdAndFeedback_FeedbackId(userId, feedbackId);
+        Optional<FeedbackLike> existingLike = feedbackLikesRepository.findByUserAndFeedback_FeedbackId(currentUser, feedbackId);
 
         if (existingLike.isPresent()) {
             feedbackLikesRepository.delete(existingLike.get());
@@ -155,7 +155,7 @@ public class FeedbackService {
         } else {
             FeedbackLike like = FeedbackLike.builder()
                     .feedback(feedback)
-                    .userId(userId)
+                    .user(currentUser)
                     .build();
             feedbackLikesRepository.save(like);
             feedback.setLikesCount(feedback.getLikesCount() + 1);
@@ -172,9 +172,10 @@ public class FeedbackService {
                 .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다: " + postAuthorUsername));
         Feedback feedback = feedbackRepository.findById(feedbackId)
                 .orElseThrow(() -> new IllegalArgumentException("피드백을 찾을 수 없습니다: " + feedbackId));
-        Post post = postRepository.findById(feedback.getPostId())
-                .orElseThrow(() -> new IllegalArgumentException("게시물을 찾을 수 없습니다: " + feedback.getPostId()));
-
+        Post post = feedback.getPost(); // 2. 변경
+        if (post == null) {
+            throw new IllegalArgumentException("게시물을 찾을 수 없습니다.");
+        }
         if (!post.getUser().getId().equals(postAuthor.getId())) {
             throw new AccessDeniedException("게시물 작성자만 피드백을 채택할 수 있습니다.");
         }
@@ -188,14 +189,13 @@ public class FeedbackService {
         feedback.setAdoptedTF(true);
 
         // 피드백 작성자(User 객체) 조회
-        User feedbackAuthor = userRepository.findById(feedback.getUserId())
-                .orElse(null); // 작성자가 탈퇴했을 수 있음
+        User feedbackAuthor = feedback.getUser();
 
         // 피드백 작성자에게 포인트 지급
         if (feedbackAuthor != null) {
             userService.awardPointsForAdoptedFeedback(feedbackAuthor); // 포인트 지급 및 채택 카운트 증가
         } else {
-            log.warn("Feedback author (userId={}) not found for awarding points.", feedback.getUserId());
+            log.warn("Feedback author not found for awarding points."); // ID 대신 메시지 수정
         }
 
         log.info("Feedback {} adopted for post {} by user {}", feedbackId, post.getPostId(), postAuthorUsername);
@@ -213,7 +213,7 @@ public class FeedbackService {
 
         LineFeedback lineFeedback = LineFeedback.builder()
                 .feedback(feedback)
-                .userId(currentUser.getId())
+                .user(currentUser)
                 .lineNumber(dto.getLineNumber())
                 .endLineNumber(dto.getEndLineNumber())
                 .content(dto.getContent())
@@ -240,7 +240,7 @@ public class FeedbackService {
             throw new IllegalStateException("잘못된 피드백 ID입니다.");
         }
 
-        if (!lineFeedback.getUserId().equals(currentUser.getId())) {
+        if (!lineFeedback.getUser().getId().equals(currentUser.getId())) { // 2. 변경
             throw new IllegalStateException("본인만 수정할 수 있습니다.");
         }
 
@@ -259,7 +259,7 @@ public class FeedbackService {
             throw new IllegalStateException("잘못된 피드백 ID입니다.");
         }
 
-        if (!lineFeedback.getUserId().equals(currentUser.getId())) {
+        if (!lineFeedback.getUser().getId().equals(currentUser.getId())) { // 2. 변경
             throw new IllegalStateException("본인만 삭제할 수 있습니다.");
         }
 
@@ -278,7 +278,7 @@ public class FeedbackService {
 
         FeedbackComment comment = FeedbackComment.builder()
                 .feedback(feedback)
-                .userId(currentUser.getId())
+                .user(currentUser)
                 .content(dto.getContent())
                 .build();
 
@@ -294,7 +294,11 @@ public class FeedbackService {
 
     @org.springframework.transaction.annotation.Transactional(readOnly = true)
     public List<FeedbackResponseDto> getFeedbacksByUserId(Long userId) {
-        List<Feedback> feedbacks = feedbackRepository.findByUserId(userId);
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
+
+        List<Feedback> feedbacks = feedbackRepository.findByUser(user);
+
         return feedbacks.stream()
                 .map(FeedbackResponseDto::fromEntity)
                 .collect(Collectors.toList());

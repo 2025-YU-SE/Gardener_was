@@ -66,14 +66,14 @@ public class PostService {
         }
 
         log.info("[POST] saved postId={}", saved.getPostId());
-        return PostResponseDto.from(saved);
+        return PostResponseDto.fromEntity(saved);
     }
 
     @Transactional(readOnly = true)
     public List<PostResponseDto> list() {
         return postRepository.findAll()
                 .stream()
-                .map(PostResponseDto::from)
+                .map(PostResponseDto::fromEntity)
                 .toList();
     }
 
@@ -94,14 +94,14 @@ public class PostService {
                 ? postRepository.findAll(pageable)
                 : postRepository.findByContentsType(contentsType, pageable);
 
-        return data.map(PostResponseDto::from);
+        return data.map(PostResponseDto::fromEntity);
     }
 
     @Transactional(readOnly = true)
     public PostResponseDto get(Long id) {
         Post p = postRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("게시물이 존재하지 않습니다."));
-        return PostResponseDto.from(p);
+        return PostResponseDto.fromEntity(p);
     }
 
     @Transactional
@@ -129,7 +129,7 @@ public class PostService {
         p.setLangTags(normalizeCsv(dto.getLanguages()));
         p.setStackTags(normalizeCsv(dto.getStacks()));
 
-        return PostResponseDto.from(p);
+        return PostResponseDto.fromEntity(p);
     }
 
     @Transactional
@@ -186,7 +186,7 @@ public class PostService {
                 pageable
         );
 
-        return data.map(PostResponseDto::from);
+        return data.map(PostResponseDto::fromEntity);
     }
 
     // ====================== AI 피드백 ======================
@@ -203,7 +203,7 @@ public class PostService {
         String aiText = aiFeedbackService.generateTextForPost(postId);
         p.setAiFeedback(aiText);
         log.info("[AI] Feedback generated manually for postId={}", postId);
-        return PostResponseDto.from(p);
+        return PostResponseDto.fromEntity(p);
     }
 
     @Transactional(readOnly = true)
@@ -276,20 +276,18 @@ public class PostService {
     // ====================== 좋아요 / 스크랩 ======================
 
     @Transactional
-    public void toggleLike(Long userId, Long postId) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다. ID: " + userId));
+    public void toggleLike(Long postId, String currentUsername) {
+        User user = userRepository.findByUserName(currentUsername)
+                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다: " + currentUsername));
         Post post = postRepository.findById(postId)
                 .orElseThrow(() -> new IllegalArgumentException("게시물이 존재하지 않습니다. ID: " + postId));
 
         Optional<PostLike> existingLike = postLikeRepository.findByUserAndPost(user, post);
 
         if (existingLike.isPresent()) {
-            // 이미 좋아요가 있으면 취소
             postLikeRepository.delete(existingLike.get());
             post.setLikesCount(Math.max(0, post.getLikesCount() - 1));
         } else {
-            // 없으면 추가
             PostLike newLike = new PostLike();
             newLike.setUser(user);
             newLike.setPost(post);
@@ -299,20 +297,18 @@ public class PostService {
     }
 
     @Transactional
-    public void toggleScrap(Long userId, Long postId) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다. ID: " + userId));
+    public void toggleScrap(Long postId, String currentUsername) {
+        User user = userRepository.findByUserName(currentUsername)
+                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다: " + currentUsername));
         Post post = postRepository.findById(postId)
                 .orElseThrow(() -> new IllegalArgumentException("게시물이 존재하지 않습니다. ID: " + postId));
 
         Optional<PostScrap> existingScrap = postScrapRepository.findByUserAndPost(user, post);
 
         if (existingScrap.isPresent()) {
-            // 이미 스크랩돼 있으면 취소
             postScrapRepository.delete(existingScrap.get());
             post.setScrapCount(Math.max(0, post.getScrapCount() - 1));
         } else {
-            // 없으면 추가
             PostScrap newScrap = new PostScrap();
             newScrap.setUser(user);
             newScrap.setPost(post);
@@ -338,7 +334,7 @@ public class PostService {
         }
 
         return scrappedPosts.stream()
-                .map(PostResponseDto::from)
+                .map(PostResponseDto::fromEntity)
                 .collect(Collectors.toList());
     }
 
@@ -347,7 +343,7 @@ public class PostService {
     public List<PostResponseDto> getPostsByUserId(Long userId) {
         List<Post> posts = postRepository.findByUserIdOrderByCreatedAtDesc(userId);
         return posts.stream()
-                .map(PostResponseDto::from)
+                .map(PostResponseDto::fromEntity)
                 .collect(Collectors.toList());
     }
 
@@ -361,15 +357,15 @@ public class PostService {
             postPage = postRepository.findByContentsType(contentsType, pageable);
         }
 
-        return postPage.map(PostResponseDto::from);
+        return postPage.map(PostResponseDto::fromEntity);
     }
 
-    // 🔥 인기 게시글 조회 (likesCount 기준 Top4) – 하나만 남김
+    // 🔥 인기 게시글 조회 (likesCount 기준 Top4)
     @Transactional(readOnly = true)
     public List<PostResponseDto> getPopularPosts(Boolean contentsType) {
         List<Post> popularPosts = postRepository.findTop4ByContentsTypeOrderByLikesCountDesc(contentsType);
         return popularPosts.stream()
-                .map(PostResponseDto::from)
+                .map(PostResponseDto::fromEntity)
                 .collect(Collectors.toList());
     }
 }

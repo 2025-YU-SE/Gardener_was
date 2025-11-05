@@ -25,8 +25,8 @@ public class FeedbackResponseDto {
     public static FeedbackResponseDto fromEntity(Feedback feedback) {
         return FeedbackResponseDto.builder()
                 .feedbackId(feedback.getFeedbackId())
-                .postId(feedback.getPostId())
-                .userId(feedback.getUserId())
+                .postId(feedback.getPost().getPostId())
+                .userId(feedback.getUser().getId())
                 .content(feedback.getContent())
                 .rating(feedback.getRating())
                 .adoptedTF(feedback.getAdoptedTF())

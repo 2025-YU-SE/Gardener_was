@@ -1,5 +1,6 @@
 package com.example.codegardener.feedback.domain;
 
+import com.example.codegardener.user.domain.User;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -22,8 +23,9 @@ public class LineFeedback {
     @JoinColumn(name = "feedback_id", nullable = false)
     private Feedback feedback; // 어떤 피드백에 속하는 라인 피드백인지
 
-    @Column(nullable = false)
-    private Long userId; // 작성자 ID
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id", nullable = false)
+    private User user;
 
     @Column(nullable = false)
     private Integer lineNumber; // 피드백 달린 코드 라인 번호

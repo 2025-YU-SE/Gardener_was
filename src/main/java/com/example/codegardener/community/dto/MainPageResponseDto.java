@@ -11,7 +11,7 @@ import java.util.List;
 @Builder
 public class MainPageResponseDto {
     private UserResponseDto userInfo; // 로그인한 사용자 정보 (비로그인 시 null)
-
+    private List<UserResponseDto> topPointUsers;
     private List<PostResponseDto> popularDevPosts; // 인기 개발 게시물
     private List<PostResponseDto> popularCodingTestPosts; // 인기 코테 게시물
 }

@@ -7,6 +7,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
 
 @RestController
 @RequiredArgsConstructor
@@ -16,8 +18,10 @@ public class MainPageController {
     private final MainPageService mainPageService;
 
     @GetMapping
-    public ResponseEntity<MainPageResponseDto> getMainPage() {
-        MainPageResponseDto mainPageData = mainPageService.getMainPageData();
+    public ResponseEntity<MainPageResponseDto> getMainPage(
+            @AuthenticationPrincipal UserDetails userDetails
+    ) {
+        MainPageResponseDto mainPageData = mainPageService.getMainPageData(userDetails);
         return ResponseEntity.ok(mainPageData);
     }
 }

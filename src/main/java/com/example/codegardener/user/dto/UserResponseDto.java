@@ -2,8 +2,11 @@ package com.example.codegardener.user.dto;
 
 import com.example.codegardener.user.domain.Role;
 import com.example.codegardener.user.domain.User;
+import com.example.codegardener.user.domain.UserProfile; // UserProfile 임포트
 
 import lombok.Getter;
+
+import java.time.LocalDate;
 
 @Getter
 public class UserResponseDto {
@@ -19,23 +22,24 @@ public class UserResponseDto {
     private final Integer postCount;
     private final Integer totalFeedbackCount;
     private final Integer adoptedFeedbackCount;
-    private final String lastAttendanceDate;
+    private final LocalDate lastAttendanceDate;
 
-    public UserResponseDto(User user) {
-
+    private UserResponseDto(User user) {
         this.id = user.getId();
         this.userName = user.getUserName();
         this.email = user.getEmail();
         this.role = user.getRole();
 
-        if (user.getUserProfile() != null) {
-            this.userPicture = user.getUserProfile().getUserPicture();
-            this.points = user.getUserProfile().getPoints();
-            this.grade = user.getUserProfile().getGrade();
-            this.postCount = user.getUserProfile().getPostCount();
-            this.totalFeedbackCount = user.getUserProfile().getTotalFeedbackCount();
-            this.adoptedFeedbackCount = user.getUserProfile().getAdoptedFeedbackCount();
-            this.lastAttendanceDate = user.getUserProfile().getLastAttendanceDate();
+        UserProfile profile = user.getUserProfile();
+
+        if (profile != null) {
+            this.userPicture = profile.getUserPicture();
+            this.points = profile.getPoints();
+            this.grade = profile.getGrade();
+            this.postCount = profile.getPostCount();
+            this.totalFeedbackCount = profile.getTotalFeedbackCount();
+            this.adoptedFeedbackCount = profile.getAdoptedFeedbackCount();
+            this.lastAttendanceDate = profile.getLastAttendanceDate();
         } else {
             this.userPicture = null;
             this.points = 0;
@@ -45,5 +49,10 @@ public class UserResponseDto {
             this.adoptedFeedbackCount = 0;
             this.lastAttendanceDate = null;
         }
+    }
+
+    public static UserResponseDto fromEntity(User user) {
+        if (user == null) return null;
+        return new UserResponseDto(user);
     }
 }

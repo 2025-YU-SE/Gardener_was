@@ -36,7 +36,7 @@ public class PostResponseDto {
 
     private final String aiFeedback;
 
-    public static PostResponseDto from(Post post) {
+    public static PostResponseDto fromEntity(Post post) {
         return PostResponseDto.builder()
                 .postId(post.getPostId())
                 .userId(post.getUser().getId())

@@ -5,6 +5,7 @@ import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
+import java.util.UUID;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
@@ -17,7 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
-import com.example.codegardener.feedback.repository.FeedbackRepository;
+import com.example.codegardener.community.repository.LeaderboardRepository;
 import com.example.codegardener.global.jwt.JwtUtil;
 import com.example.codegardener.user.domain.Role;
 import com.example.codegardener.user.domain.User;
@@ -35,7 +36,7 @@ public class UserService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
-    private final FeedbackRepository feedbackRepository;
+    private final LeaderboardRepository leaderboardRepository;
 
     private static final String GRADE_SEED = "새싹 개발자";
     private static final String GRADE_LEAF = "잎새 개발자";
@@ -69,7 +70,7 @@ public class UserService {
         User savedUser = userRepository.save(newUser);
         log.info("New user signed up: {} (ID: {}), initial points: 1000, grade: {}",
                 savedUser.getUserName(), savedUser.getId(), savedUser.getUserProfile().getGrade());
-        return new UserResponseDto(savedUser);
+        return UserResponseDto.fromEntity(savedUser);
     }
 
     // 로그인
@@ -90,62 +91,64 @@ public class UserService {
     public UserResponseDto getUserProfile(Long userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다. ID: " + userId));
-        return new UserResponseDto(user);
+        return UserResponseDto.fromEntity(user);
     }
 
     // ===== 리더보드 기능 =====
 
     // 누적 포인트 TOP3
-    public List<UserResponseDto> getTop3LeaderboardByPoints() {
+    public List<UserResponseDto> getTop3UsersByPoints() {
         return userRepository.findTop3ByOrderByUserProfile_PointsDesc().stream()
-                .map(UserResponseDto::new).collect(Collectors.toList());
+                .map(UserResponseDto::fromEntity).collect(Collectors.toList());
     }
     // 누적 포인트 페이징
-    public Page<UserResponseDto> getLeaderboardByPoints(Pageable pageable) {
+    public Page<UserResponseDto> getUsersByPoints(Pageable pageable) {
         return userRepository.findAllByOrderByUserProfile_PointsDesc(pageable)
-                .map(UserResponseDto::new);
+                .map(UserResponseDto::fromEntity);
     }
 
-    // 주간 채택 수 TOP 3
-    public List<UserResponseDto> getTop3LeaderboardByWeeklyAdopted() {
-        LocalDateTime oneWeekAgo = LocalDateTime.now().minusWeeks(1);
-        List<FeedbackRepository.UserFeedbackCount> topUsersStats = feedbackRepository.findTop3UsersByAdoptedFeedbackCount(oneWeekAgo);
-        return getUsersInOrderFromStats(topUsersStats);
-    }
-    // 주간 등록 수 TOP 3
-    public List<UserResponseDto> getTop3LeaderboardByWeeklyFeedback() {
-        LocalDateTime oneWeekAgo = LocalDateTime.now().minusWeeks(1);
-        List<FeedbackRepository.UserFeedbackCount> topUsersStats = feedbackRepository.findTop3UsersByFeedbackCount(oneWeekAgo);
-        return getUsersInOrderFromStats(topUsersStats);
-    }
 
-    // 주간 채택 수 페이징
-    public Page<UserResponseDto> getLeaderboardByWeeklyAdopted(Pageable pageable) {
+    // 주간 피드백 등록 수 TOP 3
+    public List<UserResponseDto> getTop3UsersByWeeklyFeedback() {
         LocalDateTime oneWeekAgo = LocalDateTime.now().minusWeeks(1);
-        Page<FeedbackRepository.UserFeedbackCount> statsPage = feedbackRepository.findUsersByAdoptedFeedbackCount(oneWeekAgo, pageable);
+        List<LeaderboardRepository.UserFeedbackCount> topUsersStats = leaderboardRepository.findTop3UsersByFeedbackCount(oneWeekAgo); // ◀◀ 변경
+        return getUsersInOrderFromStats(topUsersStats);
+    }
+    // 주간 피드백 등록 수 페이징
+    public Page<UserResponseDto> getUsersByWeeklyFeedback(Pageable pageable) {
+        LocalDateTime oneWeekAgo = LocalDateTime.now().minusWeeks(1);
+        Page<LeaderboardRepository.UserFeedbackCount> statsPage = leaderboardRepository.findUsersByFeedbackCount(oneWeekAgo, pageable); // ◀◀ 변경
         List<UserResponseDto> orderedUsers = getUsersInOrderFromStats(statsPage.getContent());
         return new PageImpl<>(orderedUsers, pageable, statsPage.getTotalElements());
     }
-    // 주간 등록 수 페이징
-    public Page<UserResponseDto> getLeaderboardByWeeklyFeedback(Pageable pageable) {
+
+    // 주간 피드백 채택 수 TOP 3
+    public List<UserResponseDto> getTop3UsersByWeeklyAdopted() {
         LocalDateTime oneWeekAgo = LocalDateTime.now().minusWeeks(1);
-        Page<FeedbackRepository.UserFeedbackCount> statsPage = feedbackRepository.findUsersByFeedbackCount(oneWeekAgo, pageable);
+        List<LeaderboardRepository.UserFeedbackCount> topUsersStats = leaderboardRepository.findTop3UsersByAdoptedFeedbackCount(oneWeekAgo); // ◀◀ 변경
+        return getUsersInOrderFromStats(topUsersStats);
+    }
+    // 주간 피드백 채택 수 페이징
+    public Page<UserResponseDto> getUsersByWeeklyAdopted(Pageable pageable) {
+        LocalDateTime oneWeekAgo = LocalDateTime.now().minusWeeks(1);
+        Page<LeaderboardRepository.UserFeedbackCount> statsPage = leaderboardRepository.findUsersByAdoptedFeedbackCount(oneWeekAgo, pageable); // ◀◀ 변경
         List<UserResponseDto> orderedUsers = getUsersInOrderFromStats(statsPage.getContent());
         return new PageImpl<>(orderedUsers, pageable, statsPage.getTotalElements());
     }
+
 
     // FeedbackRepository 결과대로 User를 정렬하여 반환하도록 하는 헬퍼 메소드
-    private List<UserResponseDto> getUsersInOrderFromStats(List<FeedbackRepository.UserFeedbackCount> userStats) {
+    private List<UserResponseDto> getUsersInOrderFromStats(List<LeaderboardRepository.UserFeedbackCount> userStats) {
         if (userStats.isEmpty()) {
             return Collections.emptyList();
         }
-        List<Long> userIds = userStats.stream().map(FeedbackRepository.UserFeedbackCount::getUserId).toList();
+        List<Long> userIds = userStats.stream().map(LeaderboardRepository.UserFeedbackCount::getUserId).toList();
 
         List<User> users = userRepository.findAllByIdWithProfile(userIds);
 
         return userIds.stream()
                 .flatMap(id -> users.stream().filter(u -> u.getId().equals(id)))
-                .map(UserResponseDto::new)
+                .map(UserResponseDto::fromEntity)
                 .collect(Collectors.toList());
     }
 
@@ -159,11 +162,10 @@ public class UserService {
             throw new IllegalStateException("관리자 계정은 스스로 탈퇴할 수 없습니다. 다른 관리자에게 요청하세요.");
         }
 
-        log.info("User '{}' (userId={}) is deleting their own account.",
+        log.info("User '{}' (userId={}) is deleting their own account (Soft Delete).",
                 currentUser.getUserName(), currentUser.getId());
-        userRepository.delete(currentUser);
 
-        // TODO: 관리자 삭제와 동일하게, 사용자가 작성한 게시물, 피드백 등의 처리 정책 필요
+        anonymizeAndSoftDelete(currentUser);
     }
 
     // ===== 포인트 및 등급 관련 =====
@@ -182,29 +184,6 @@ public class UserService {
 
         log.info("Added {} points to user {} for [{}]. New points: {}, New grade: {}",
                 pointsToAdd, user.getUserName(), reason, userProfile.getPoints(), userProfile.getGrade());
-    }
-
-    @Transactional
-    public void subtractPoints(User user, int pointsToSubtract, String reason) {
-        if (pointsToSubtract <= 0) {
-            log.warn("Attempted to subtract non-positive points ({}) from user {}", pointsToSubtract, user.getUserName());
-            return;
-        }
-
-        UserProfile userProfile = getUserProfileEntity(user);
-        int currentPoints = userProfile.getPoints();
-
-        if (currentPoints < pointsToSubtract) {
-            log.warn("User {} has insufficient points ({}) to subtract {}.", user.getUserName(), currentPoints, pointsToSubtract);
-            userProfile.setPoints(0); // 0으로 만들기 (또는 예외 처리)
-        } else {
-            userProfile.setPoints(currentPoints - pointsToSubtract);
-        }
-
-        updateGrade(userProfile); // 등급 업데이트
-
-        log.info("Subtracted {} points from user {} for [{}]. New points: {}, New grade: {}",
-                pointsToSubtract, user.getUserName(), reason, userProfile.getPoints(), userProfile.getGrade());
     }
 
     private void updateGrade(UserProfile userProfile) {
@@ -280,12 +259,37 @@ public class UserService {
             throw new IllegalArgumentException("자기 자신을 삭제할 수 없습니다.");
         }
 
-        log.warn("[ADMIN] Admin '{}' is deleting user '{}' (userId={})",
+        log.warn("[ADMIN] Admin '{}' is deleting user '{}' (userId={}) (Soft Delete)",
                 adminUsername, userToDelete.getUserName(), userIdToDelete);
 
-        userRepository.delete(userToDelete);
+        anonymizeAndSoftDelete(userToDelete);
+    }
 
-        // TODO: 사용자가 작성한 게시물, 피드백, 댓글, 좋아요 등을 어떻게 처리할지 정책 결정 필요
-        //       (예: 같이 삭제, null로 변경, '탈퇴한 사용자'로 표시 등)
+    // 4. Soft Delete 및 익명화 처리를 위한 헬퍼 메소드
+    /**
+     * 사용자를 '탈퇴' 상태로 만들고 개인정보를 익명화
+     * @ SQLRestriction("deleted_at IS NULL")에 의해 이후 조회 대상에서 제외
+     */
+    private void anonymizeAndSoftDelete(User user) {
+        if (user == null) return;
+
+        // 1. 개인 식별 정보(PII) 익명화
+        String uniqueId = user.getId().toString();
+        user.setUserName("deleted_user_" + uniqueId); // (중복 방지)
+        user.setEmail(uniqueId + "@deleted.user"); // (중복 방지)
+        user.setPassword(passwordEncoder.encode(UUID.randomUUID().toString())); // 비밀번호 스크램블
+
+        // 2. 프로필 정보 업데이트
+        UserProfile profile = user.getUserProfile();
+        if (profile != null) {
+            profile.setUserPicture(null); // 프로필 사진 삭제
+            profile.setGrade(UserProfile.GRADE_DELETED); // 등급 변경
+        }
+
+        // 3. Soft Delete 플래그 설정
+        user.setDeletedAt(LocalDateTime.now());
+
+        // 4. 업데이트 저장
+        userRepository.save(user);
     }
 }

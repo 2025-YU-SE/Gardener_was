@@ -4,12 +4,15 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.SQLRestriction;
+import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "user")
 @Getter
 @Setter
 @NoArgsConstructor
+@SQLRestriction("deleted_at IS NULL")
 public class User {
 
     @Id
@@ -32,4 +35,7 @@ public class User {
 
     @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private UserProfile userProfile;
+
+    @Column(name = "deleted_at")
+    private LocalDateTime deletedAt;
 }

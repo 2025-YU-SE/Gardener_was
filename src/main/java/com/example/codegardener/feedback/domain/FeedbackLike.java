@@ -1,5 +1,6 @@
 package com.example.codegardener.feedback.domain;
 
+import com.example.codegardener.user.domain.User;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -19,8 +20,9 @@ public class FeedbackLike {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long feedbackLikeId;
 
-    @Column(name = "user_id", nullable = false)
-    private Long userId;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id", nullable = false)
+    private User user;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "feedback_id", nullable = false)

@@ -17,18 +17,18 @@ public class LeaderboardService {
 
     public List<UserResponseDto> getTop3Leaderboard(String sortBy) {
         return switch (sortBy.toLowerCase()) {
-            case "points" -> userService.getTop3LeaderboardByPoints();
-            case "weeklyadopted" -> userService.getTop3LeaderboardByWeeklyAdopted();
-            case "weeklyfeedback" -> userService.getTop3LeaderboardByWeeklyFeedback();
+            case "points" -> userService.getTop3UsersByPoints();
+            case "weeklyadopted" -> userService.getTop3UsersByWeeklyAdopted();
+            case "weeklyfeedback" -> userService.getTop3UsersByWeeklyFeedback();
             default -> throw new IllegalArgumentException("지원하지 않는 정렬 기준입니다: " + sortBy);
         };
     }
 
     public Page<UserResponseDto> getLeaderboard(String sortBy, Pageable pageable) {
         return switch (sortBy.toLowerCase()) {
-            case "points" -> userService.getLeaderboardByPoints(pageable);
-            case "weeklyadopted" -> userService.getLeaderboardByWeeklyAdopted(pageable);
-            case "weeklyfeedback" -> userService.getLeaderboardByWeeklyFeedback(pageable);
+            case "points" -> userService.getUsersByPoints(pageable);
+            case "weeklyadopted" -> userService.getUsersByWeeklyAdopted(pageable);
+            case "weeklyfeedback" -> userService.getUsersByWeeklyFeedback(pageable);
             default -> throw new IllegalArgumentException("지원하지 않는 정렬 기준입니다: " + sortBy);
         };
     }

@@ -3,6 +3,11 @@ package com.example.codegardener.community.service;
 import com.example.codegardener.community.dto.MainPageResponseDto;
 import com.example.codegardener.post.dto.PostResponseDto;
 import com.example.codegardener.post.service.PostService;
+import com.example.codegardener.user.domain.User;
+import com.example.codegardener.user.dto.UserResponseDto;
+import com.example.codegardener.user.repository.UserRepository;
+import com.example.codegardener.user.service.UserService;
+import org.springframework.security.core.userdetails.UserDetails;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -13,14 +18,30 @@ import java.util.List;
 public class MainPageService {
 
     private final PostService postService;
+    private final UserRepository userRepository;
+    private final UserService userService;
 
-    public MainPageResponseDto getMainPageData() {
+    public MainPageResponseDto getMainPageData(UserDetails userDetails) {
+        // 로그인 사용자 정보 조회
+        UserResponseDto userInfo = null;
+        if (userDetails != null) {
+            User user = userRepository.findByUserName(userDetails.getUsername())
+                    .orElse(null); // (예외 처리 대신 null 반환)
+            if (user != null) {
+                userInfo = UserResponseDto.fromEntity(user);
+            }
+        }
+
+        List<UserResponseDto> topPointUsers = userService.getTop3UsersByPoints();
+
         // PostService를 호출하여 각각의 인기 게시물 목록을 가져옴
         List<PostResponseDto> devPosts = postService.getPopularPosts(true); // true: 개발
         List<PostResponseDto> codingTestPosts = postService.getPopularPosts(false); // false: 코테
 
         // Builder를 사용하여 DTO를 생성하고 반환
         return MainPageResponseDto.builder()
+                .userInfo(userInfo)
+                .topPointUsers(topPointUsers)
                 .popularDevPosts(devPosts)
                 .popularCodingTestPosts(codingTestPosts)
                 .build();

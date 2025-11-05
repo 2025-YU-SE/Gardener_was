@@ -1,5 +1,7 @@
 package com.example.codegardener.feedback.domain;
 
+import com.example.codegardener.post.domain.Post;
+import com.example.codegardener.user.domain.User;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -20,11 +22,14 @@ public class Feedback {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long feedbackId;
 
-    @Column(nullable = false)
-    private Long postId; // 어떤 게시물에 대한 피드백인지
+    // 객체 참조로 변경
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "post_id", nullable = false)
+    private Post post;
 
-    @Column(nullable = false)
-    private Long userId; // 피드백 작성자 ID
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id", nullable = false)
+    private User user;
 
     @Column(columnDefinition = "TEXT", nullable = false)
     private String content; // 전체 피드백 내용

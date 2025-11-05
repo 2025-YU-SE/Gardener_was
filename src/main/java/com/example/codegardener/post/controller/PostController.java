@@ -139,15 +139,27 @@ public class PostController {
     }
 
     // ====================== 좋아요/스크랩 ======================
-    @PostMapping("/likes")
-    public ResponseEntity<Void> toggleLike(@RequestBody PostResponseDto dto) {
-        postService.toggleLike(dto.getUserId(), dto.getPostId());
+    @PostMapping("/{postId}/like")
+    public ResponseEntity<Void> toggleLike(
+            @PathVariable Long postId,
+            @AuthenticationPrincipal UserDetails userDetails
+    ) {
+        if (userDetails == null) {
+            throw new IllegalArgumentException("좋아요를 누르려면 로그인이 필요합니다.");
+        }
+        postService.toggleLike(postId, userDetails.getUsername());
         return ResponseEntity.ok().build();
     }
 
-    @PostMapping("/scraps")
-    public ResponseEntity<Void> toggleScrap(@RequestBody PostResponseDto dto) {
-        postService.toggleScrap(dto.getUserId(), dto.getPostId());
+    @PostMapping("/{postId}/scrap")
+    public ResponseEntity<Void> toggleScrap(
+            @PathVariable Long postId,
+            @AuthenticationPrincipal UserDetails userDetails
+    ) {
+        if (userDetails == null) {
+            throw new IllegalArgumentException("스크랩을 하려면 로그인이 필요합니다.");
+        }
+        postService.toggleScrap(postId, userDetails.getUsername());
         return ResponseEntity.ok().build();
     }
 

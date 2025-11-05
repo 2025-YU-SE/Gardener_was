@@ -14,6 +14,8 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class UserProfile {
 
+    public static final String GRADE_DELETED = "탈퇴한 사용자";
+
     @Id
     @Column(name = "user_id")
     private Long id;

@@ -1,5 +1,6 @@
 package com.example.codegardener.feedback.domain;
 
+import com.example.codegardener.user.domain.User;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -22,8 +23,9 @@ public class FeedbackComment {
     @JoinColumn(name = "feedback_id", nullable = false)
     private Feedback feedback; // 어떤 피드백의 댓글인지
 
-    @Column(nullable = false)
-    private Long userId; // 작성자 ID
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id", nullable = false)
+    private User user;
 
     @Column(columnDefinition = "TEXT", nullable = false)
     private String content;
