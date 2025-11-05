@@ -8,9 +8,6 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
-import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -52,14 +49,25 @@ public class PostController {
         return ResponseEntity.ok(postService.get(id));
     }
 
-    /** 페이징 목록 — contentsType: null=전체 / true=개발 / false=코테 */
+    /**
+     * 페이징 목록
+     * contentsType: null=전체 / true=개발 / false=코테
+     * order: recent(최신순), popular(조회수), feedback(피드백순)
+     */
     @GetMapping
     public ResponseEntity<Page<PostResponseDto>> getPostList(
             @RequestParam(required = false) Boolean contentsType,
-            @PageableDefault(size = 10, sort = "createdAt", direction = Sort.Direction.DESC)
-            Pageable pageable
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(name = "order", defaultValue = "recent") String order
     ) {
-        Page<PostResponseDto> postPage = postService.getPostList(contentsType, pageable);
+        String sortBy = mapOrderToSortKey(order);
+        int safePage = normalizePage(page);
+        int safeSize = normalizeSize(size);
+
+        Page<PostResponseDto> postPage =
+                postService.getPostList(safePage, safeSize, contentsType, sortBy);
+
         return ResponseEntity.ok(postPage);
     }
 
@@ -103,14 +111,9 @@ public class PostController {
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(name = "order", defaultValue = "recent") String order
     ) {
-        String sort = switch (order.toLowerCase()) {
-            case "popular"  -> "views";
-            case "feedback" -> "feedback";
-            default         -> "latest";
-        };
-
-        int safePage = Math.max(page, 0);
-        int safeSize = Math.min(Math.max(size, 1), 50);
+        String sort = mapOrderToSortKey(order);
+        int safePage = normalizePage(page);
+        int safeSize = normalizeSize(size);
 
         Page<PostResponseDto> result = postService.discoverAdvanced(
                 q, languages, langsCsv, stacks, stacksCsv, contentsType,
@@ -174,5 +177,24 @@ public class PostController {
         String username = userDetails.getUsername();
         List<PostResponseDto> scrappedPosts = postService.getMyScrappedPosts(username);
         return ResponseEntity.ok(scrappedPosts);
+    }
+
+    // ====================== private 헬퍼 메서드들 ======================
+
+    private String mapOrderToSortKey(String order) {
+        if (order == null) return "latest";
+        return switch (order.toLowerCase()) {
+            case "popular"  -> "views";
+            case "feedback" -> "feedback";
+            default         -> "latest";   // recent 등 나머지
+        };
+    }
+
+    private int normalizePage(int page) {
+        return Math.max(page, 0);
+    }
+
+    private int normalizeSize(int size) {
+        return Math.min(Math.max(size, 1), 50);
     }
 }

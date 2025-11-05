@@ -77,9 +77,18 @@ public class PostService {
                 .toList();
     }
 
-    /** 목록(페이징) */
+    // ====================== 목록(페이징) 통합 메서드 ======================
+
+    /**
+     * 게시글 목록 페이징 조회
+     *
+     * @param page         0-based page index
+     * @param size         page size (1 ~ 50)
+     * @param contentsType null이면 전체, true/false 로 필터링
+     * @param sortBy       "views", "feedback", 그 외는 "createdAt" 기준 최신순
+     */
     @Transactional(readOnly = true)
-    public Page<PostResponseDto> listPaged(int page, int size, Boolean contentsType, String sortBy) {
+    public Page<PostResponseDto> getPostList(int page, int size, Boolean contentsType, String sortBy) {
         page = Math.max(page, 0);
         size = Math.min(Math.max(size, 1), 50);
 
@@ -88,14 +97,17 @@ public class PostService {
             case "feedback" -> Sort.by(Sort.Direction.DESC, "feedbackCount");
             default         -> Sort.by(Sort.Direction.DESC, "createdAt");
         };
+
         Pageable pageable = PageRequest.of(page, size, sort);
 
-        Page<Post> data = (contentsType == null)
+        Page<Post> postPage = (contentsType == null)
                 ? postRepository.findAll(pageable)
                 : postRepository.findByContentsType(contentsType, pageable);
 
-        return data.map(PostResponseDto::fromEntity);
+        return postPage.map(PostResponseDto::fromEntity);
     }
+
+    // ====================== 단건 조회 ======================
 
     @Transactional(readOnly = true)
     public PostResponseDto get(Long id) {
@@ -345,19 +357,6 @@ public class PostService {
         return posts.stream()
                 .map(PostResponseDto::fromEntity)
                 .collect(Collectors.toList());
-    }
-
-    @Transactional(readOnly = true)
-    public Page<PostResponseDto> getPostList(Boolean contentsType, Pageable pageable) {
-        Page<Post> postPage;
-
-        if (contentsType == null) {
-            postPage = postRepository.findAll(pageable);
-        } else {
-            postPage = postRepository.findByContentsType(contentsType, pageable);
-        }
-
-        return postPage.map(PostResponseDto::fromEntity);
     }
 
     // 🔥 인기 게시글 조회 (likesCount 기준 Top4)
