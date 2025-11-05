@@ -51,18 +51,11 @@ public class FeedbackService {
         Post post = postRepository.findById(dto.getPostId())
                 .orElseThrow(() -> new IllegalArgumentException("게시물을 찾을 수 없습니다."));
 
-        Feedback feedback = Feedback.builder()
-                .post(post)
-                .user(currentUser)
-                .content(dto.getContent())
-                .rating(dto.getRating())
-                .adoptedTF(false)
-                .likesCount(0)
-                .build();
-
+        Feedback feedback = dto.toEntity(currentUser, post);
         Feedback savedFeedback = feedbackRepository.save(feedback);
 
         post.setFeedbackCount(post.getFeedbackCount() + 1);
+        postRepository.save(post); // 게시물의 피드백 수 업데이트
 
         UserProfile authorProfile = currentUser.getUserProfile();
         if (authorProfile != null) {
@@ -292,15 +285,4 @@ public class FeedbackService {
                 .collect(Collectors.toList());
     }
 
-    @org.springframework.transaction.annotation.Transactional(readOnly = true)
-    public List<FeedbackResponseDto> getFeedbacksByUserId(Long userId) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
-
-        List<Feedback> feedbacks = feedbackRepository.findByUser(user);
-
-        return feedbacks.stream()
-                .map(FeedbackResponseDto::fromEntity)
-                .collect(Collectors.toList());
-    }
 }

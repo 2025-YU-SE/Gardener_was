@@ -56,6 +56,9 @@ public class Feedback {
     @OneToMany(mappedBy = "feedback", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<FeedbackComment> comments = new ArrayList<>();
 
+    @OneToMany(mappedBy = "feedback", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<FeedbackLike> likes = new ArrayList<>();
+
     // ===== 생명주기 콜백 ===== //
     @PrePersist
     protected void onCreate() {
