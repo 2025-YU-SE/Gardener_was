@@ -7,6 +7,8 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDateTime;
+
 @Entity
 @Table(name = "post_scraps", uniqueConstraints = @UniqueConstraint(columnNames = {"user_id", "post_id"}))
 @Getter
@@ -24,4 +26,7 @@ public class PostScrap {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "post_id", nullable = false)
     private Post post;
+
+    @Column(nullable = false, updatable = false)
+    private LocalDateTime createdAt;
 }

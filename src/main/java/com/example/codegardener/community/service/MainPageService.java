@@ -20,6 +20,7 @@ public class MainPageService {
     private final PostService postService;
     private final UserRepository userRepository;
     private final UserService userService;
+    private final LeaderboardService leaderboardService;
 
     public MainPageResponseDto getMainPageData(UserDetails userDetails) {
         // 로그인 사용자 정보 조회
@@ -32,7 +33,7 @@ public class MainPageService {
             }
         }
 
-        List<UserResponseDto> topPointUsers = userService.getTop3UsersByPoints();
+        List<UserResponseDto> topPointUsers = leaderboardService.getTop3UsersByPoints();
 
         // PostService를 호출하여 각각의 인기 게시물 목록을 가져옴
         List<PostResponseDto> devPosts = postService.getPopularPosts(true); // true: 개발

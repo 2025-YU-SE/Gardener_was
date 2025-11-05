@@ -86,10 +86,7 @@ public interface PostRepository extends JpaRepository<Post, Long> {
             Pageable pageable
     );
 
-    // 🔥 여기가 핵심 수정 포인트
-    // Post.user.userId 기준으로 정렬
-    List<Post> findByUser_UserIdOrderByCreatedAtDesc(Long userId);
-
-    // 특정 타입의 게시물 중 좋아요가 많은 상위 4개를 조회
+    Page<Post> findByUser_UserIdOrderByCreatedAtDesc(Long userId, Pageable pageable);
+    List<Post> findFirst4ByUser_UserIdOrderByCreatedAtDesc(Long userId);
     List<Post> findTop4ByContentsTypeOrderByLikesCountDesc(Boolean contentsType);
 }

@@ -2,15 +2,17 @@ package com.example.codegardener.user.service;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.Collections;
 import java.util.List;
-import java.util.stream.Collectors;
 import java.util.UUID;
 
+import com.example.codegardener.feedback.dto.FeedbackResponseDto;
+import com.example.codegardener.feedback.service.FeedbackService;
+import com.example.codegardener.post.dto.PostResponseDto;
+import com.example.codegardener.post.service.PostService;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -18,7 +20,6 @@ import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
-import com.example.codegardener.community.repository.LeaderboardRepository;
 import com.example.codegardener.global.jwt.JwtUtil;
 import com.example.codegardener.user.domain.Role;
 import com.example.codegardener.user.domain.User;
@@ -36,7 +37,9 @@ public class UserService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
-    private final LeaderboardRepository leaderboardRepository;
+
+    private final PostService postService;
+    private final FeedbackService feedbackService;
 
     private static final String GRADE_SEED = "새싹 개발자";
     private static final String GRADE_LEAF = "잎새 개발자";
@@ -86,70 +89,12 @@ public class UserService {
         return jwtUtil.createToken(user.getUserName(), user.getRole());
     }
 
-    // 사용자 프로필 조회
+    // 사용자 프로필 조회 (Public)
     @Transactional(readOnly = true)
     public UserResponseDto getUserProfile(Long userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다. ID: " + userId));
         return UserResponseDto.fromEntity(user);
-    }
-
-    // ===== 리더보드 기능 =====
-
-    // 누적 포인트 TOP3
-    public List<UserResponseDto> getTop3UsersByPoints() {
-        return userRepository.findTop3ByOrderByUserProfile_PointsDesc().stream()
-                .map(UserResponseDto::fromEntity).collect(Collectors.toList());
-    }
-    // 누적 포인트 페이징
-    public Page<UserResponseDto> getUsersByPoints(Pageable pageable) {
-        return userRepository.findAllByOrderByUserProfile_PointsDesc(pageable)
-                .map(UserResponseDto::fromEntity);
-    }
-
-
-    // 주간 피드백 등록 수 TOP 3
-    public List<UserResponseDto> getTop3UsersByWeeklyFeedback() {
-        LocalDateTime oneWeekAgo = LocalDateTime.now().minusWeeks(1);
-        List<LeaderboardRepository.UserFeedbackCount> topUsersStats = leaderboardRepository.findTop3UsersByFeedbackCount(oneWeekAgo); // ◀◀ 변경
-        return getUsersInOrderFromStats(topUsersStats);
-    }
-    // 주간 피드백 등록 수 페이징
-    public Page<UserResponseDto> getUsersByWeeklyFeedback(Pageable pageable) {
-        LocalDateTime oneWeekAgo = LocalDateTime.now().minusWeeks(1);
-        Page<LeaderboardRepository.UserFeedbackCount> statsPage = leaderboardRepository.findUsersByFeedbackCount(oneWeekAgo, pageable); // ◀◀ 변경
-        List<UserResponseDto> orderedUsers = getUsersInOrderFromStats(statsPage.getContent());
-        return new PageImpl<>(orderedUsers, pageable, statsPage.getTotalElements());
-    }
-
-    // 주간 피드백 채택 수 TOP 3
-    public List<UserResponseDto> getTop3UsersByWeeklyAdopted() {
-        LocalDateTime oneWeekAgo = LocalDateTime.now().minusWeeks(1);
-        List<LeaderboardRepository.UserFeedbackCount> topUsersStats = leaderboardRepository.findTop3UsersByAdoptedFeedbackCount(oneWeekAgo); // ◀◀ 변경
-        return getUsersInOrderFromStats(topUsersStats);
-    }
-    // 주간 피드백 채택 수 페이징
-    public Page<UserResponseDto> getUsersByWeeklyAdopted(Pageable pageable) {
-        LocalDateTime oneWeekAgo = LocalDateTime.now().minusWeeks(1);
-        Page<LeaderboardRepository.UserFeedbackCount> statsPage = leaderboardRepository.findUsersByAdoptedFeedbackCount(oneWeekAgo, pageable); // ◀◀ 변경
-        List<UserResponseDto> orderedUsers = getUsersInOrderFromStats(statsPage.getContent());
-        return new PageImpl<>(orderedUsers, pageable, statsPage.getTotalElements());
-    }
-
-
-    // FeedbackRepository 결과대로 User를 정렬하여 반환하도록 하는 헬퍼 메소드
-    private List<UserResponseDto> getUsersInOrderFromStats(List<LeaderboardRepository.UserFeedbackCount> userStats) {
-        if (userStats.isEmpty()) {
-            return Collections.emptyList();
-        }
-        List<Long> userIds = userStats.stream().map(LeaderboardRepository.UserFeedbackCount::getUserId).toList();
-
-        List<User> users = userRepository.findAllByIdWithProfile(userIds);
-
-        return userIds.stream()
-                .flatMap(id -> users.stream().filter(u -> u.getUserId().equals(id)))
-                .map(UserResponseDto::fromEntity)
-                .collect(Collectors.toList());
     }
 
     // 회원 탈퇴
@@ -291,5 +236,61 @@ public class UserService {
 
         // 4. 업데이트 저장
         userRepository.save(user);
+    }
+
+    // 마이페이지: 사용자가 최근 등록한 게시물 4개
+    @Transactional(readOnly = true)
+    public List<PostResponseDto> getRecentPostsByUserId(Long userId) {
+        return postService.getRecentPostsByUserId(userId);
+    }
+
+    // 마이페이지: 사용자가 등록한 게시물 페이징
+    @Transactional(readOnly = true)
+    public Page<PostResponseDto> getPostsByUserId(Long userId, Pageable pageable) {
+        return postService.getPostsByUserId(userId, pageable);
+    }
+
+    // 마이페이지: 사용자가 최근 등록한 피드백 4개
+    @Transactional(readOnly = true)
+    public List<FeedbackResponseDto> getRecentFeedbacksByUserId(Long userId) {
+        return feedbackService.getRecentFeedbacksByUserId(userId);
+    }
+
+    // 마이페이지: 사용자가 등록한 피드백 페이징
+    @Transactional(readOnly = true)
+    public Page<FeedbackResponseDto> getFeedbacksByUserId(Long userId, Pageable pageable) {
+        return feedbackService.getFeedbacksByUserId(userId, pageable);
+    }
+
+    // 마이페이지: 사용자가 최근 스크랩한 게시물 4개
+    @Transactional(readOnly = true)
+    public List<PostResponseDto> getRecentScrapsForUser(Long userId, UserDetails userDetails) {
+        if (userDetails == null) {
+            throw new AccessDeniedException("로그인이 필요합니다.");
+        }
+
+        User loggedInUser = userRepository.findByUserName(userDetails.getUsername())
+                .orElseThrow(() -> new IllegalArgumentException("인증된 사용자를 찾을 수 없습니다."));
+        if (!loggedInUser.getUserId().equals(userId)) {
+            throw new AccessDeniedException("스크랩은 본인만 조회할 수 있습니다.");
+        }
+
+        return postService.getRecentScrappedPostsByUsername(userDetails.getUsername());
+    }
+
+    // 마이페이지: 사용자가 스크랩한 게시물 페이징
+    @Transactional(readOnly = true)
+    public Page<PostResponseDto> getScrapsForUser(Long userId, Pageable pageable, UserDetails userDetails) {
+        if (userDetails == null) {
+            throw new AccessDeniedException("로그인이 필요합니다.");
+        }
+
+        User loggedInUser = userRepository.findByUserName(userDetails.getUsername())
+                .orElseThrow(() -> new IllegalArgumentException("인증된 사용자를 찾을 수 없습니다."));
+        if (!loggedInUser.getUserId().equals(userId)) {
+            throw new AccessDeniedException("스크랩은 본인만 조회할 수 있습니다.");
+        }
+
+        return postService.getScrappedPostsByUsername(userDetails.getUsername(), pageable);
     }
 }

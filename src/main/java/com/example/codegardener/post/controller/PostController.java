@@ -111,9 +111,14 @@ public class PostController {
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(name = "order", defaultValue = "recent") String order
     ) {
-        String sort = mapOrderToSortKey(order);
-        int safePage = normalizePage(page);
-        int safeSize = normalizeSize(size);
+        String sort = switch (order.toLowerCase()) {
+            case "popular"  -> "views";
+            case "feedback" -> "feedback";
+            default         -> "latest";
+        };
+
+        int safePage = Math.max(page, 0);
+        int safeSize = Math.min(Math.max(size, 1), 50);
 
         Page<PostResponseDto> result = postService.discoverAdvanced(
                 q, languages, langsCsv, stacks, stacksCsv, contentsType,
@@ -166,7 +171,7 @@ public class PostController {
         return ResponseEntity.ok().build();
     }
 
-    @GetMapping("/my-scraps")
+    @GetMapping("/my_scraps")
     public ResponseEntity<List<PostResponseDto>> getMyScraps(
             @AuthenticationPrincipal UserDetails userDetails
     ) {

@@ -19,6 +19,7 @@ import org.springframework.data.domain.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -324,42 +325,81 @@ public class PostService {
             PostScrap newScrap = new PostScrap();
             newScrap.setUser(user);
             newScrap.setPost(post);
+            newScrap.setCreatedAt(LocalDateTime.now());
             postScrapRepository.save(newScrap);
             post.setScrapCount(post.getScrapCount() + 1);
         }
     }
 
+    // 마이페이지: 사용자가 스크랩한 게시물 페이징
     @Transactional(readOnly = true)
-    public List<PostResponseDto> getMyScrappedPosts(String username) {
+    public Page<PostResponseDto> getScrappedPostsByUsername(String username, Pageable pageable) {
         User user = userRepository.findByUserName(username)
                 .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
 
-        List<PostScrap> scraps = postScrapRepository.findAllByUser(user);
+        Page<PostScrap> scraps = postScrapRepository.findAllByUser(user, pageable);
 
-        List<Post> scrappedPosts = scraps.stream()
+        return scraps.map(scrap -> PostResponseDto.fromEntity(scrap.getPost()));
+    }
+
+
+    // 마이페이지: 사용자가 최근 스크랩한 게시물 4개
+    @Transactional(readOnly = true)
+    public List<PostResponseDto> getRecentScrappedPostsByUsername(String username) {
+        User user = userRepository.findByUserName(username)
+                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
+
+        List<PostScrap> scraps = postScrapRepository.findFirst4ByUserOrderByCreatedAtDesc(user);
+
+        return scraps.stream()
                 .map(PostScrap::getPost)
-                .filter(Objects::nonNull)
-                .toList();
-
-        if (scrappedPosts.isEmpty()) {
-            return Collections.emptyList();
-        }
-
-        return scrappedPosts.stream()
                 .map(PostResponseDto::fromEntity)
                 .collect(Collectors.toList());
     }
 
-    // 특정 사용자가 등록한 게시물 조회
+
+    // 마이페이지: 사용자가 등록한 게시물 페이징
     @Transactional(readOnly = true)
-    public List<PostResponseDto> getPostsByUserId(Long userId) {
-        List<Post> posts = postRepository.findByUser_UserIdOrderByCreatedAtDesc(userId);
+    public Page<PostResponseDto> getPostsByUserId(Long userId, Pageable pageable) {
+        Page<Post> posts = postRepository.findByUser_UserIdOrderByCreatedAtDesc(userId, pageable);
+        return posts.map(PostResponseDto::fromEntity);
+    }
+
+    // 마이페이지: 사용자가 최근 등록한 게시물 4개
+    @Transactional(readOnly = true)
+    public List<PostResponseDto> getRecentPostsByUserId(Long userId) {
+        List<Post> posts = postRepository.findFirst4ByUser_UserIdOrderByCreatedAtDesc(userId);
         return posts.stream()
                 .map(PostResponseDto::fromEntity)
                 .collect(Collectors.toList());
     }
 
-    // 🔥 인기 게시글 조회 (likesCount 기준 Top4)
+    @Transactional(readOnly = true)
+    public List<PostResponseDto> getMyScrappedPosts(String username) {
+        User user = userRepository.findByUserName(username)
+                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다: " + username));
+
+        return postScrapRepository.findAllByUser(user)
+                .stream()
+                .map(PostScrap::getPost)
+                .map(PostResponseDto::fromEntity)
+                .collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
+    public Page<PostResponseDto> getPostList(Boolean contentsType, Pageable pageable) {
+        Page<Post> postPage;
+
+        if (contentsType == null) {
+            postPage = postRepository.findAll(pageable);
+        } else {
+            postPage = postRepository.findByContentsType(contentsType, pageable);
+        }
+
+        return postPage.map(PostResponseDto::fromEntity);
+    }
+
+    // 좋아요 기준 인기 게시글 4개
     @Transactional(readOnly = true)
     public List<PostResponseDto> getPopularPosts(Boolean contentsType) {
         List<Post> popularPosts = postRepository.findTop4ByContentsTypeOrderByLikesCountDesc(contentsType);
