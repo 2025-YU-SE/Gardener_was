@@ -45,6 +45,7 @@ public class UserService {
     private static final String GRADE_LEAF = "잎새 개발자";
     private static final String GRADE_TREE = "나무 개발자";
     private static final String GRADE_SAGE = "숲의 현자";
+    private static final String GRADE_DELETED = "탈퇴한 사용자";
 
     // 회원 가입
     @Transactional
@@ -97,6 +98,15 @@ public class UserService {
         return UserResponseDto.fromEntity(user);
     }
 
+    private UserProfile getUserProfile(User user) {
+        UserProfile profile = user.getUserProfile();
+        if (profile == null) {
+            log.error("UserProfile not found for user: {}", user.getUserName());
+            throw new IllegalStateException("사용자 프로필 정보를 찾을 수 없습니다.");
+        }
+        return profile;
+    }
+
     // 회원 탈퇴
     @Transactional
     public void deleteCurrentUser(String currentUsername) {
@@ -121,7 +131,7 @@ public class UserService {
             return;
         }
 
-        UserProfile userProfile = getUserProfileEntity(user);
+        UserProfile userProfile = getUserProfile(user);
         int currentPoints = userProfile.getPoints();
         userProfile.setPoints(currentPoints + pointsToAdd);
 
@@ -152,19 +162,10 @@ public class UserService {
         }
     }
 
-    private UserProfile getUserProfileEntity(User user) {
-        UserProfile profile = user.getUserProfile();
-        if (profile == null) {
-            log.error("UserProfile not found for user: {}", user.getUserName());
-            throw new IllegalStateException("사용자 프로필 정보를 찾을 수 없습니다.");
-        }
-        return profile;
-    }
-
     @Transactional
     public void awardPointsForAdoptedFeedback(User feedbackAuthor) {
         addPoints(feedbackAuthor, 100, "피드백 채택");
-        UserProfile profile = getUserProfileEntity(feedbackAuthor);
+        UserProfile profile = getUserProfile(feedbackAuthor);
         profile.setAdoptedFeedbackCount(profile.getAdoptedFeedbackCount() + 1);
     }
 
@@ -173,7 +174,7 @@ public class UserService {
         User user = userRepository.findByUserName(username)
                 .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
         LocalDate today = LocalDate.now();
-        UserProfile userProfile = getUserProfileEntity(user);
+        UserProfile userProfile = getUserProfile(user);
 
         // 마지막 출석일 확인
         if (userProfile.getLastAttendanceDate() != null && userProfile.getLastAttendanceDate().isEqual(today)) {
@@ -228,7 +229,7 @@ public class UserService {
         UserProfile profile = user.getUserProfile();
         if (profile != null) {
             profile.setUserPicture(null); // 프로필 사진 삭제
-            profile.setGrade(UserProfile.GRADE_DELETED); // 등급 변경
+            profile.setGrade(GRADE_DELETED); // 등급 변경
         }
 
         // 3. Soft Delete 플래그 설정

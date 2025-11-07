@@ -16,7 +16,6 @@ public class FeedbackRequestDto {
     private String content;
     private Double rating;
 
-    // ✅ 변환 로직은 유지하되, Service에서만 호출할 것
     public Feedback toEntity(User user, Post post) {
         return Feedback.builder()
                 .post(post)

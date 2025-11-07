@@ -374,31 +374,6 @@ public class PostService {
                 .collect(Collectors.toList());
     }
 
-    @Transactional(readOnly = true)
-    public List<PostResponseDto> getMyScrappedPosts(String username) {
-        User user = userRepository.findByUserName(username)
-                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다: " + username));
-
-        return postScrapRepository.findAllByUser(user)
-                .stream()
-                .map(PostScrap::getPost)
-                .map(PostResponseDto::fromEntity)
-                .collect(Collectors.toList());
-    }
-
-    @Transactional(readOnly = true)
-    public Page<PostResponseDto> getPostList(Boolean contentsType, Pageable pageable) {
-        Page<Post> postPage;
-
-        if (contentsType == null) {
-            postPage = postRepository.findAll(pageable);
-        } else {
-            postPage = postRepository.findByContentsType(contentsType, pageable);
-        }
-
-        return postPage.map(PostResponseDto::fromEntity);
-    }
-
     // 좋아요 기준 인기 게시글 4개
     @Transactional(readOnly = true)
     public List<PostResponseDto> getPopularPosts(Boolean contentsType) {
