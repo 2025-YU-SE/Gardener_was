@@ -287,23 +287,4 @@ public class FeedbackService {
                 .collect(Collectors.toList());
     }
 
-    // 마이페이지: 특정 사용자의 피드백 페이징
-    @org.springframework.transaction.annotation.Transactional(readOnly = true)
-    public Page<FeedbackResponseDto> getFeedbacksByUserId(Long userId, Pageable pageable) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
-        Page<Feedback> feedbacks = feedbackRepository.findByUserOrderByCreatedAtDesc(user, pageable);
-        return feedbacks.map(FeedbackResponseDto::fromEntity);
-    }
-
-    // 마이페이지: 사용자 피드백 최근 4개
-    @org.springframework.transaction.annotation.Transactional(readOnly = true)
-    public List<FeedbackResponseDto> getRecentFeedbacksByUserId(Long userId) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
-        List<Feedback> feedbacks = feedbackRepository.findFirst4ByUserOrderByCreatedAtDesc(user);
-        return feedbacks.stream()
-                .map(FeedbackResponseDto::fromEntity)
-                .collect(Collectors.toList());
-    }
 }

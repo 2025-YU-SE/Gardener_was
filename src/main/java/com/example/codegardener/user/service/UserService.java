@@ -4,9 +4,11 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
+import com.example.codegardener.feedback.domain.Feedback;
 import com.example.codegardener.feedback.dto.FeedbackResponseDto;
-import com.example.codegardener.feedback.service.FeedbackService;
+import com.example.codegardener.feedback.repository.FeedbackRepository;
 import com.example.codegardener.post.dto.PostResponseDto;
 import com.example.codegardener.post.service.PostService;
 import org.springframework.data.domain.Page;
@@ -39,7 +41,7 @@ public class UserService {
     private final JwtUtil jwtUtil;
 
     private final PostService postService;
-    private final FeedbackService feedbackService;
+    private final FeedbackRepository feedbackRepository;
 
     private static final String GRADE_SEED = "새싹 개발자";
     private static final String GRADE_LEAF = "잎새 개발자";
@@ -251,16 +253,24 @@ public class UserService {
         return postService.getPostsByUserId(userId, pageable);
     }
 
-    // 마이페이지: 사용자가 최근 등록한 피드백 4개
-    @Transactional(readOnly = true)
-    public List<FeedbackResponseDto> getRecentFeedbacksByUserId(Long userId) {
-        return feedbackService.getRecentFeedbacksByUserId(userId);
+    // 마이페이지: 특정 사용자의 피드백 페이징
+    @org.springframework.transaction.annotation.Transactional(readOnly = true)
+    public Page<FeedbackResponseDto> getFeedbacksByUserId(Long userId, Pageable pageable) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
+        Page<Feedback> feedbacks = feedbackRepository.findByUserOrderByCreatedAtDesc(user, pageable);
+        return feedbacks.map(FeedbackResponseDto::fromEntity);
     }
 
-    // 마이페이지: 사용자가 등록한 피드백 페이징
-    @Transactional(readOnly = true)
-    public Page<FeedbackResponseDto> getFeedbacksByUserId(Long userId, Pageable pageable) {
-        return feedbackService.getFeedbacksByUserId(userId, pageable);
+    // 마이페이지: 사용자 피드백 최근 4개
+    @org.springframework.transaction.annotation.Transactional(readOnly = true)
+    public List<FeedbackResponseDto> getRecentFeedbacksByUserId(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
+        List<Feedback> feedbacks = feedbackRepository.findFirst4ByUserOrderByCreatedAtDesc(user);
+        return feedbacks.stream()
+                .map(FeedbackResponseDto::fromEntity)
+                .collect(Collectors.toList());
     }
 
     // 마이페이지: 사용자가 최근 스크랩한 게시물 4개
