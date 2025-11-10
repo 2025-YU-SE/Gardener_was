@@ -171,19 +171,6 @@ public class PostController {
         return ResponseEntity.ok().build();
     }
 
-    @GetMapping("/my_scraps")
-    public ResponseEntity<List<PostResponseDto>> getMyScraps(
-            @AuthenticationPrincipal UserDetails userDetails
-    ) {
-        if (userDetails == null) {
-            throw new IllegalArgumentException("로그인이 필요합니다.");
-        }
-
-        String username = userDetails.getUsername();
-        List<PostResponseDto> scrappedPosts = postService.getMyScrappedPosts(username);
-        return ResponseEntity.ok(scrappedPosts);
-    }
-
     // ====================== private 헬퍼 메서드들 ======================
 
     private String mapOrderToSortKey(String order) {

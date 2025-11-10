@@ -90,9 +90,6 @@ public class UserController {
         }
     }
 
-
-    // ===== 관리자용 API =====
-
     @DeleteMapping("/{userId}/admin")
     public ResponseEntity<String> deleteUserByAdmin(
             @PathVariable Long userId,
@@ -114,7 +111,7 @@ public class UserController {
         }
     }
 
-    // 마이페이지 api
+    // 마이페이지
 
     @GetMapping("/{userId}/posts/recent")
     public ResponseEntity<List<PostResponseDto>> getUserRecentPosts(

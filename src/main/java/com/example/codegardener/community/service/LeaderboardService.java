@@ -18,10 +18,9 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
-@Transactional(readOnly = true) // CUD 작업이 없으므로 readOnly로 변경
+@Transactional(readOnly = true)
 public class LeaderboardService {
 
-    // 🔥 UserService 의존성 제거
     private final UserRepository userRepository;
     private final LeaderboardRepository leaderboardRepository;
 

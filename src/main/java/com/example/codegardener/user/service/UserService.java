@@ -4,9 +4,11 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
+import com.example.codegardener.feedback.domain.Feedback;
 import com.example.codegardener.feedback.dto.FeedbackResponseDto;
-import com.example.codegardener.feedback.service.FeedbackService;
+import com.example.codegardener.feedback.repository.FeedbackRepository;
 import com.example.codegardener.post.dto.PostResponseDto;
 import com.example.codegardener.post.service.PostService;
 import org.springframework.data.domain.Page;
@@ -37,14 +39,15 @@ public class UserService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
-
+    private final FeedbackRepository feedbackRepository;
     private final PostService postService;
-    private final FeedbackService feedbackService;
+
 
     private static final String GRADE_SEED = "새싹 개발자";
     private static final String GRADE_LEAF = "잎새 개발자";
     private static final String GRADE_TREE = "나무 개발자";
     private static final String GRADE_SAGE = "숲의 현자";
+    private static final String GRADE_DELETED = "탈퇴한 사용자";
 
     // 회원 가입
     @Transactional
@@ -97,6 +100,15 @@ public class UserService {
         return UserResponseDto.fromEntity(user);
     }
 
+    private UserProfile getUserProfile(User user) {
+        UserProfile profile = user.getUserProfile();
+        if (profile == null) {
+            log.error("UserProfile not found for user: {}", user.getUserName());
+            throw new IllegalStateException("사용자 프로필 정보를 찾을 수 없습니다.");
+        }
+        return profile;
+    }
+
     // 회원 탈퇴
     @Transactional
     public void deleteCurrentUser(String currentUsername) {
@@ -121,7 +133,7 @@ public class UserService {
             return;
         }
 
-        UserProfile userProfile = getUserProfileEntity(user);
+        UserProfile userProfile = getUserProfile(user);
         int currentPoints = userProfile.getPoints();
         userProfile.setPoints(currentPoints + pointsToAdd);
 
@@ -152,19 +164,10 @@ public class UserService {
         }
     }
 
-    private UserProfile getUserProfileEntity(User user) {
-        UserProfile profile = user.getUserProfile();
-        if (profile == null) {
-            log.error("UserProfile not found for user: {}", user.getUserName());
-            throw new IllegalStateException("사용자 프로필 정보를 찾을 수 없습니다.");
-        }
-        return profile;
-    }
-
     @Transactional
     public void awardPointsForAdoptedFeedback(User feedbackAuthor) {
         addPoints(feedbackAuthor, 100, "피드백 채택");
-        UserProfile profile = getUserProfileEntity(feedbackAuthor);
+        UserProfile profile = getUserProfile(feedbackAuthor);
         profile.setAdoptedFeedbackCount(profile.getAdoptedFeedbackCount() + 1);
     }
 
@@ -173,7 +176,7 @@ public class UserService {
         User user = userRepository.findByUserName(username)
                 .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
         LocalDate today = LocalDate.now();
-        UserProfile userProfile = getUserProfileEntity(user);
+        UserProfile userProfile = getUserProfile(user);
 
         // 마지막 출석일 확인
         if (userProfile.getLastAttendanceDate() != null && userProfile.getLastAttendanceDate().isEqual(today)) {
@@ -228,7 +231,7 @@ public class UserService {
         UserProfile profile = user.getUserProfile();
         if (profile != null) {
             profile.setUserPicture(null); // 프로필 사진 삭제
-            profile.setGrade(UserProfile.GRADE_DELETED); // 등급 변경
+            profile.setGrade(GRADE_DELETED); // 등급 변경
         }
 
         // 3. Soft Delete 플래그 설정
@@ -250,17 +253,27 @@ public class UserService {
         return postService.getPostsByUserId(userId, pageable);
     }
 
-    // 마이페이지: 사용자가 최근 등록한 피드백 4개
-    @Transactional(readOnly = true)
-    public List<FeedbackResponseDto> getRecentFeedbacksByUserId(Long userId) {
-        return feedbackService.getRecentFeedbacksByUserId(userId);
+
+    // 마이페이지: 특정 사용자의 피드백 페이징
+    @org.springframework.transaction.annotation.Transactional(readOnly = true)
+    public Page<FeedbackResponseDto> getFeedbacksByUserId(Long userId, Pageable pageable) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
+        Page<Feedback> feedbacks = feedbackRepository.findByUserOrderByCreatedAtDesc(user, pageable);
+        return feedbacks.map(FeedbackResponseDto::fromEntity);
     }
 
-    // 마이페이지: 사용자가 등록한 피드백 페이징
-    @Transactional(readOnly = true)
-    public Page<FeedbackResponseDto> getFeedbacksByUserId(Long userId, Pageable pageable) {
-        return feedbackService.getFeedbacksByUserId(userId, pageable);
+    // 마이페이지: 사용자 피드백 최근 4개
+    @org.springframework.transaction.annotation.Transactional(readOnly = true)
+    public List<FeedbackResponseDto> getRecentFeedbacksByUserId(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
+        List<Feedback> feedbacks = feedbackRepository.findFirst4ByUserOrderByCreatedAtDesc(user);
+        return feedbacks.stream()
+                .map(FeedbackResponseDto::fromEntity)
+                .collect(Collectors.toList());
     }
+
 
     // 마이페이지: 사용자가 최근 스크랩한 게시물 4개
     @Transactional(readOnly = true)

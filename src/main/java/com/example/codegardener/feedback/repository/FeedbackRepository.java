@@ -3,6 +3,8 @@ package com.example.codegardener.feedback.repository;
 import com.example.codegardener.feedback.domain.Feedback;
 import com.example.codegardener.user.domain.User;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -11,6 +13,7 @@ import java.util.List;
 public interface FeedbackRepository extends JpaRepository<Feedback, Long> {
 
     List<Feedback> findByPost_PostId(Long postId);
-    List<Feedback> findByUser(User user);
+    Page<Feedback> findByUserOrderByCreatedAtDesc(User user, Pageable pageable);
+    List<Feedback> findFirst4ByUserOrderByCreatedAtDesc(User user);
 
 }

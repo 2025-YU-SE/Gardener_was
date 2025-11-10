@@ -17,7 +17,6 @@ public interface LeaderboardRepository extends JpaRepository<Feedback, Long> {
     // JPQL 집계 결과를 담기 위한 인터페이스
     interface UserFeedbackCount {
         Long getUserId();
-        Long getCount();
     }
 
     // 주간 등록 수 TOP3
