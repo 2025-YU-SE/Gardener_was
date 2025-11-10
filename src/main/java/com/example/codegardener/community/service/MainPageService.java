@@ -6,7 +6,6 @@ import com.example.codegardener.post.service.PostService;
 import com.example.codegardener.user.domain.User;
 import com.example.codegardener.user.dto.UserResponseDto;
 import com.example.codegardener.user.repository.UserRepository;
-import com.example.codegardener.user.service.UserService;
 import org.springframework.security.core.userdetails.UserDetails;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -19,7 +18,6 @@ public class MainPageService {
 
     private final PostService postService;
     private final UserRepository userRepository;
-    private final UserService userService;
     private final LeaderboardService leaderboardService;
 
     public MainPageResponseDto getMainPageData(UserDetails userDetails) {
