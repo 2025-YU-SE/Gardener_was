@@ -1,7 +1,9 @@
 package com.example.codegardener.user.controller;
 
 import com.example.codegardener.feedback.dto.FeedbackResponseDto;
+import com.example.codegardener.feedback.service.FeedbackService;
 import com.example.codegardener.post.dto.PostResponseDto;
+import com.example.codegardener.post.service.PostService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -31,6 +33,8 @@ import java.util.List;
 public class UserController {
 
     private final UserService userService;
+    private final FeedbackService feedbackService;
+    private final PostService postService;
 
     @PostMapping("/signup")
     public ResponseEntity<UserResponseDto> signUp(@RequestBody SignUpRequestDto signUpRequestDto) {
@@ -117,7 +121,7 @@ public class UserController {
     public ResponseEntity<List<PostResponseDto>> getUserRecentPosts(
             @PathVariable Long userId
     ) {
-        List<PostResponseDto> posts = userService.getRecentPostsByUserId(userId);
+        List<PostResponseDto> posts = postService.getRecentPostsByUserId(userId);
         return ResponseEntity.ok(posts);
     }
 
@@ -126,7 +130,7 @@ public class UserController {
             @PathVariable Long userId,
             @PageableDefault(size = 10, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable
     ) {
-        Page<PostResponseDto> postPage = userService.getPostsByUserId(userId, pageable);
+        Page<PostResponseDto> postPage = postService.getPostsByUserId(userId, pageable);
         return ResponseEntity.ok(postPage);
     }
 
@@ -134,7 +138,7 @@ public class UserController {
     public ResponseEntity<List<FeedbackResponseDto>> getUserRecentFeedbacks(
             @PathVariable Long userId
     ) {
-        List<FeedbackResponseDto> feedbacks = userService.getRecentFeedbacksByUserId(userId);
+        List<FeedbackResponseDto> feedbacks = feedbackService.getRecentFeedbacksByUserId(userId);
         return ResponseEntity.ok(feedbacks);
     }
 
@@ -143,26 +147,30 @@ public class UserController {
             @PathVariable Long userId,
             @PageableDefault(size = 10, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable
     ) {
-        Page<FeedbackResponseDto> feedbackPage = userService.getFeedbacksByUserId(userId, pageable);
+        Page<FeedbackResponseDto> feedbackPage = feedbackService.getFeedbacksByUserId(userId, pageable);
         return ResponseEntity.ok(feedbackPage);
     }
 
     @GetMapping("/{userId}/scraps/recent")
-    public ResponseEntity<List<PostResponseDto>> getUserRecentScraps(
-            @PathVariable Long userId,
+    public ResponseEntity<List<PostResponseDto>> getMyRecentScraps(
             @AuthenticationPrincipal UserDetails userDetails
     ) {
-        List<PostResponseDto> scraps = userService.getRecentScrapsForUser(userId, userDetails);
+        if (userDetails == null) {
+            throw new AccessDeniedException("로그인이 필요합니다.");
+        }
+        List<PostResponseDto> scraps = postService.getRecentScrappedPostsByUsername(userDetails.getUsername());
         return ResponseEntity.ok(scraps);
     }
 
     @GetMapping("/{userId}/scraps")
-    public ResponseEntity<Page<PostResponseDto>> getUserScraps(
-            @PathVariable Long userId,
+    public ResponseEntity<Page<PostResponseDto>> getMyScraps(
             @AuthenticationPrincipal UserDetails userDetails,
             @PageableDefault(size = 10, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable
     ) {
-        Page<PostResponseDto> scrapPage = userService.getScrapsForUser(userId, pageable, userDetails);
+        if (userDetails == null) {
+            throw new AccessDeniedException("로그인이 필요합니다.");
+        }
+        Page<PostResponseDto> scrapPage = postService.getScrappedPostsByUsername(userDetails.getUsername(), pageable);
         return ResponseEntity.ok(scrapPage);
     }
 }

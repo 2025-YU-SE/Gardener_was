@@ -16,6 +16,8 @@ import com.example.codegardener.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.*;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -342,7 +344,6 @@ public class PostService {
         return scraps.map(scrap -> PostResponseDto.fromEntity(scrap.getPost()));
     }
 
-
     // 마이페이지: 사용자가 최근 스크랩한 게시물 4개
     @Transactional(readOnly = true)
     public List<PostResponseDto> getRecentScrappedPostsByUsername(String username) {
@@ -356,7 +357,6 @@ public class PostService {
                 .map(PostResponseDto::fromEntity)
                 .collect(Collectors.toList());
     }
-
 
     // 마이페이지: 사용자가 등록한 게시물 페이징
     @Transactional(readOnly = true)
