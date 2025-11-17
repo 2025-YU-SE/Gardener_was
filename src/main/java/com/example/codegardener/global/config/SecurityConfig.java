@@ -17,6 +17,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 @EnableWebSecurity
 @RequiredArgsConstructor
 public class SecurityConfig {
+
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
 
     @Bean
@@ -30,20 +31,32 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        // 인증 없이 항상 허용할 경로
+                        // 🔹 Swagger / OpenAPI 문서 경로 허용
+                        .requestMatchers(
+                                "/v3/api-docs/**",
+                                "/swagger-ui/**",
+                                "/swagger-ui.html",
+                                "/swagger-resources/**",
+                                "/webjars/**"
+                        ).permitAll()
+
+                        // 🔹 인증 없이 항상 허용할 경로
                         .requestMatchers("/api/user/signup", "/api/user/login").permitAll()
 
-                        // 인증 없이 허용할 공개 GET 경로
+                        // 🔹 인증 없이 허용할 공개 GET 경로
                         .requestMatchers(HttpMethod.GET,
                                 "/api/posts",
-                                "/api/posts/{id}",
+                                "/api/posts/*",      // /api/posts/{id} 대신 패턴으로
                                 "/api/posts/search",
-                                "/api/feedback/post/{postId}",
-                                "/api/feedback/{feedbackId}",
+                                "/api/feedback/post/*",
+                                "/api/feedback/*",
                                 "/api/leaderboard/**",
-                                "/api/main").permitAll()
+                                "/api/main"
+                        ).permitAll()
+
                         .requestMatchers(HttpMethod.DELETE, "/api/user/{userId}/admin").hasRole("ADMIN")
-                        // 그 외 "모든 요청"은 인증 필요
+
+                        // 🔹 그 외 "모든 요청"은 인증 필요
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
