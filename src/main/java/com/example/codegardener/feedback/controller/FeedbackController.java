@@ -191,7 +191,7 @@ public class FeedbackController {
     /**
      * ✅ [GET] 댓글 목록 조회
      */
-    @GetMapping("/{feedbackId}/comments")
+    @GetMapping("/{feedbackId}/comment")
     public ResponseEntity<List<FeedbackCommentDto>> getCommentsByFeedback(
             @PathVariable Long feedbackId
     ) {
