@@ -24,6 +24,7 @@ import com.example.codegardener.user.dto.LoginResponseDto;
 import com.example.codegardener.user.dto.SignUpRequestDto;
 import com.example.codegardener.user.dto.UserResponseDto;
 import com.example.codegardener.user.service.UserService;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -128,6 +129,38 @@ public class UserController {
     }
 
     // 마이페이지
+
+    // 프로필 사진 등록 및 수정
+    // Content-Type: multipart/form-data
+    @PutMapping(value = "/profile-picture", consumes = "multipart/form-data")
+    public ResponseEntity<String> updateProfilePicture(
+            @RequestParam("file") MultipartFile file,
+            @AuthenticationPrincipal UserDetails userDetails
+    ) {
+        if (userDetails == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("로그인이 필요합니다.");
+        }
+
+        try {
+            String imageUrl = userService.updateProfilePicture(userDetails.getUsername(), file);
+            return ResponseEntity.ok(imageUrl); // 변경된 이미지 URL 반환
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    // 프로필 사진 삭제 (기본값으로 초기화)
+    @DeleteMapping("/profile-picture")
+    public ResponseEntity<String> deleteProfilePicture(
+            @AuthenticationPrincipal UserDetails userDetails
+    ) {
+        if (userDetails == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("로그인이 필요합니다.");
+        }
+
+        userService.deleteProfilePicture(userDetails.getUsername());
+        return ResponseEntity.ok("프로필 사진이 기본 이미지로 변경되었습니다.");
+    }
 
     @GetMapping("/{userId}/posts/recent")
     public ResponseEntity<List<PostResponseDto>> getUserRecentPosts(
