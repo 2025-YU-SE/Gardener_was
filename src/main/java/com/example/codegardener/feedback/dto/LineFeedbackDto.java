@@ -17,6 +17,7 @@ public class LineFeedbackDto {
     private Integer endLineNumber;
     private String content;
     private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
 
     public static LineFeedbackDto fromEntity(LineFeedback entity) {
         return LineFeedbackDto.builder()
@@ -26,6 +27,7 @@ public class LineFeedbackDto {
                 .endLineNumber(entity.getEndLineNumber())
                 .content(entity.getContent())
                 .createdAt(entity.getCreatedAt())
+                .updatedAt(entity.getUpdatedAt())
                 .build();
     }
 }
