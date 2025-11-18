@@ -1,6 +1,7 @@
 package com.example.codegardener.global.jwt;
 
 import com.example.codegardener.global.service.UserDetailsServiceImpl;
+import com.example.codegardener.global.jwt.TokenBlacklistRepository;
 import io.jsonwebtoken.Claims;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -22,11 +23,17 @@ import java.io.IOException;
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private final JwtUtil jwtUtil;
     private final UserDetailsServiceImpl userDetailsService;
+    private final TokenBlacklistRepository tokenBlacklistRepository;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
         String token = resolveToken(request);
+        if (token != null && tokenBlacklistRepository.existsByToken(token)) {
+            // 로그아웃된 토큰으로 접근 시 401 에러 또는 무시
+            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            return;
+        }
         if (token != null) {
             try {
                 if (!jwtUtil.isTokenExpired(token)) {

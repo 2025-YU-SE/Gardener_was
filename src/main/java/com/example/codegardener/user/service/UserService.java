@@ -9,6 +9,8 @@ import com.example.codegardener.post.dto.PostResponseDto;
 import com.example.codegardener.post.service.PostService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import com.example.codegardener.global.jwt.TokenBlacklist;
+import com.example.codegardener.global.jwt.TokenBlacklistRepository;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -35,8 +37,7 @@ public class UserService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
-
-    private final PostService postService;
+    private final TokenBlacklistRepository tokenBlacklistRepository;
 
     private static final String GRADE_SEED = "새싹 개발자";
     private static final String GRADE_LEAF = "잎새 개발자";
@@ -85,6 +86,17 @@ public class UserService {
         }
 
         return jwtUtil.createToken(user.getUserName(), user.getRole());
+    }
+
+    // 로그아웃
+    @Transactional
+    public void logout(String token) {
+        // 토큰에서 남은 유효 시간 계산 등은 생략하고, 단순히 저장
+        TokenBlacklist blacklist = new TokenBlacklist();
+        blacklist.setToken(token);
+        blacklist.setExpiryDate(LocalDateTime.now().plusHours(1)); // 예: 1시간 뒤 만료로 설정
+
+        tokenBlacklistRepository.save(blacklist);
     }
 
     // 사용자 프로필 조회 (Public)

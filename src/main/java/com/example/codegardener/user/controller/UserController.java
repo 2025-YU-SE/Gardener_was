@@ -4,6 +4,7 @@ import com.example.codegardener.feedback.dto.FeedbackResponseDto;
 import com.example.codegardener.feedback.service.FeedbackService;
 import com.example.codegardener.post.dto.PostResponseDto;
 import com.example.codegardener.post.service.PostService;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -46,6 +47,17 @@ public class UserController {
     public ResponseEntity<LoginResponseDto> login(@RequestBody LoginRequestDto loginRequestDto) {
         String token = userService.login(loginRequestDto);
         return ResponseEntity.ok(new LoginResponseDto(token));
+    }
+
+    @PostMapping("/logout")
+    public ResponseEntity<String> logout(HttpServletRequest request) {
+        String bearerToken = request.getHeader("Authorization");
+        if (bearerToken != null && bearerToken.startsWith("Bearer ")) {
+            String token = bearerToken.substring(7);
+            userService.logout(token);
+            return ResponseEntity.ok("로그아웃 되었습니다.");
+        }
+        return ResponseEntity.badRequest().body("토큰이 없습니다.");
     }
 
     @GetMapping("/{userId}")
