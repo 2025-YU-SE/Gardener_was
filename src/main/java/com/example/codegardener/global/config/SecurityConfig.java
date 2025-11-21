@@ -13,6 +13,14 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+
+import static org.springframework.security.config.Customizer.withDefaults;
+
+import java.util.List;
+
 @Configuration
 @EnableWebSecurity
 @RequiredArgsConstructor
@@ -29,9 +37,14 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
                 .csrf(csrf -> csrf.disable())
+                .cors(cors -> cors.configurationSource(corsConfigurationSource())) // 🔥 반드시 추가
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        // 🔹 Swagger / OpenAPI 문서 경로 허용
+
+                        // OPTIONS(Preflight) 무조건 허용 ⭐⭐⭐⭐⭐
+                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+
+                        // swagger
                         .requestMatchers(
                                 "/v3/api-docs/**",
                                 "/swagger-ui/**",
@@ -40,13 +53,13 @@ public class SecurityConfig {
                                 "/webjars/**"
                         ).permitAll()
 
-                        // 🔹 인증 없이 항상 허용할 경로
+                        // public endpoints
                         .requestMatchers("/api/user/signup", "/api/user/login").permitAll()
 
-                        // 🔹 인증 없이 허용할 공개 GET 경로
+                        // GET public
                         .requestMatchers(HttpMethod.GET,
                                 "/api/posts",
-                                "/api/posts/*",      // /api/posts/{id} 대신 패턴으로
+                                "/api/posts/*",
                                 "/api/posts/search",
                                 "/api/feedback/post/*",
                                 "/api/feedback/*",
@@ -56,11 +69,39 @@ public class SecurityConfig {
 
                         .requestMatchers(HttpMethod.DELETE, "/api/user/{userId}/admin").hasRole("ADMIN")
 
-                        // 🔹 그 외 "모든 요청"은 인증 필요
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
+    }
+
+
+    /**
+     * 🔹 CORS 규칙 정의
+     *  - 어디(origin)에서 오는 요청을 허용할지
+     *  - 어떤 메서드/헤더를 허용할지
+     */
+    @Bean
+    public CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration config = new CorsConfiguration();
+
+        // 프론트 개발 서버 Origin
+        config.setAllowedOrigins(List.of("http://localhost:3000"));
+
+        // 허용할 HTTP 메서드들
+        config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
+
+        // 어떤 헤더를 허용할지 (Authorization, Content-Type 등)
+        config.setAllowedHeaders(List.of("*"));
+
+        // 인증정보(쿠키, Authorization 헤더 등) 포함 허용
+        config.setAllowCredentials(true);
+
+        // 모든 경로에 위 설정 적용
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", config);
+
+        return source;
     }
 }
