@@ -4,6 +4,7 @@ import com.example.codegardener.feedback.dto.FeedbackResponseDto;
 import com.example.codegardener.feedback.service.FeedbackService;
 import com.example.codegardener.post.dto.PostResponseDto;
 import com.example.codegardener.post.service.PostService;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -23,6 +24,7 @@ import com.example.codegardener.user.dto.LoginResponseDto;
 import com.example.codegardener.user.dto.SignUpRequestDto;
 import com.example.codegardener.user.dto.UserResponseDto;
 import com.example.codegardener.user.service.UserService;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -46,6 +48,17 @@ public class UserController {
     public ResponseEntity<LoginResponseDto> login(@RequestBody LoginRequestDto loginRequestDto) {
         String token = userService.login(loginRequestDto);
         return ResponseEntity.ok(new LoginResponseDto(token));
+    }
+
+    @PostMapping("/logout")
+    public ResponseEntity<String> logout(HttpServletRequest request) {
+        String bearerToken = request.getHeader("Authorization");
+        if (bearerToken != null && bearerToken.startsWith("Bearer ")) {
+            String token = bearerToken.substring(7);
+            userService.logout(token);
+            return ResponseEntity.ok("로그아웃 되었습니다.");
+        }
+        return ResponseEntity.badRequest().body("토큰이 없습니다.");
     }
 
     @GetMapping("/{userId}")
@@ -116,6 +129,38 @@ public class UserController {
     }
 
     // 마이페이지
+
+    // 프로필 사진 등록 및 수정
+    // Content-Type: multipart/form-data
+    @PutMapping(value = "/profile-picture", consumes = "multipart/form-data")
+    public ResponseEntity<String> updateProfilePicture(
+            @RequestParam("file") MultipartFile file,
+            @AuthenticationPrincipal UserDetails userDetails
+    ) {
+        if (userDetails == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("로그인이 필요합니다.");
+        }
+
+        try {
+            String imageUrl = userService.updateProfilePicture(userDetails.getUsername(), file);
+            return ResponseEntity.ok(imageUrl); // 변경된 이미지 URL 반환
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    // 프로필 사진 삭제 (기본값으로 초기화)
+    @DeleteMapping("/profile-picture")
+    public ResponseEntity<String> deleteProfilePicture(
+            @AuthenticationPrincipal UserDetails userDetails
+    ) {
+        if (userDetails == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("로그인이 필요합니다.");
+        }
+
+        userService.deleteProfilePicture(userDetails.getUsername());
+        return ResponseEntity.ok("프로필 사진이 기본 이미지로 변경되었습니다.");
+    }
 
     @GetMapping("/{userId}/posts/recent")
     public ResponseEntity<List<PostResponseDto>> getUserRecentPosts(

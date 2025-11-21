@@ -9,11 +9,19 @@ import com.example.codegardener.post.dto.PostResponseDto;
 import com.example.codegardener.post.service.PostService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import com.example.codegardener.global.jwt.TokenBlacklist;
+import com.example.codegardener.global.jwt.TokenBlacklistRepository;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -35,8 +43,7 @@ public class UserService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
-
-    private final PostService postService;
+    private final TokenBlacklistRepository tokenBlacklistRepository;
 
     private static final String GRADE_SEED = "새싹 개발자";
     private static final String GRADE_LEAF = "잎새 개발자";
@@ -85,6 +92,67 @@ public class UserService {
         }
 
         return jwtUtil.createToken(user.getUserName(), user.getRole());
+    }
+
+    // 로그아웃
+    @Transactional
+    public void logout(String token) {
+        // 토큰에서 남은 유효 시간 계산 등은 생략하고, 단순히 저장
+        TokenBlacklist blacklist = new TokenBlacklist();
+        blacklist.setToken(token);
+        blacklist.setExpiryDate(LocalDateTime.now().plusHours(1)); // 예: 1시간 뒤 만료로 설정
+
+        tokenBlacklistRepository.save(blacklist);
+    }
+
+    // 프로필 사진 업데이트
+    @Transactional
+    public String updateProfilePicture(String username, MultipartFile file) {
+        User user = userRepository.findByUserName(username)
+                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
+
+        if (file.isEmpty()) {
+            throw new IllegalArgumentException("파일이 비어있습니다.");
+        }
+
+        try {
+            // 저장할 디렉토리 생성 (프로젝트 루트/uploads)
+            String uploadDir = System.getProperty("user.dir") + "/uploads";
+            Path uploadPath = Paths.get(uploadDir);
+            if (!Files.exists(uploadPath)) {
+                Files.createDirectories(uploadPath);
+            }
+
+            // 파일명 중복 방지를 위한 UUID 생성
+            String originalFilename = file.getOriginalFilename();
+            String extension = originalFilename.substring(originalFilename.lastIndexOf("."));
+            String storeFileName = UUID.randomUUID().toString() + extension;
+
+            // 파일 저장
+            File destinationFile = new File(uploadDir, storeFileName);
+            file.transferTo(destinationFile);
+
+            // DB 업데이트 (접근 URL 저장)
+            String fileUrl = "/images/" + storeFileName;
+
+            UserProfile profile = getUserProfile(user);
+            profile.setUserPicture(fileUrl);
+
+            return fileUrl;
+
+        } catch (IOException e) {
+            throw new RuntimeException("파일 업로드 중 오류가 발생했습니다.", e);
+        }
+    }
+
+    // 프로필 사진 삭제 (기본 이미지로 변경)
+    @Transactional
+    public void deleteProfilePicture(String username) {
+        User user = userRepository.findByUserName(username)
+                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
+
+        UserProfile profile = getUserProfile(user);
+        profile.setUserPicture(null);
     }
 
     // 사용자 프로필 조회 (Public)
