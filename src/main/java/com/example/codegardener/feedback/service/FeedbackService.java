@@ -48,7 +48,7 @@ public class FeedbackService {
     // ============================================================
 
     // ✅ 피드백 작성
-    public FeedbackResponseDto createFeedback(FeedbackRequestDto dto, String currentUsername) {
+    /*public FeedbackResponseDto createFeedback(FeedbackRequestDto dto, String currentUsername) {
         User currentUser = findUserByUsername(currentUsername);
         Post post = postRepository.findById(dto.getPostId())
                 .orElseThrow(() -> new IllegalArgumentException("게시물을 찾을 수 없습니다."));
@@ -68,7 +68,45 @@ public class FeedbackService {
         }
 
         return FeedbackResponseDto.fromEntity(savedFeedback);
+    }*/
+
+    public FeedbackResponseDto createFeedback(FeedbackRequestDto dto, String currentUsername) {
+
+        User currentUser = findUserByUsername(currentUsername);
+        Post post = postRepository.findById(dto.getPostId())
+                .orElseThrow(() -> new IllegalArgumentException("게시물을 찾을 수 없습니다."));
+
+        // 1) 피드백 먼저 저장
+        Feedback feedback = dto.toEntity(currentUser, post);
+        Feedback savedFeedback = feedbackRepository.save(feedback);
+
+        // 2) 라인피드백 리스트가 존재하면 저장
+        if (dto.getLineFeedbacks() != null) {
+            for (LineFeedbackDto lfDto : dto.getLineFeedbacks()) {
+                LineFeedback lineFeedback = LineFeedback.builder()
+                        .feedback(savedFeedback)
+                        .user(currentUser)
+                        .lineNumber(lfDto.getLineNumber())
+                        .endLineNumber(lfDto.getEndLineNumber())
+                        .content(lfDto.getContent())
+                        .build();
+
+                lineFeedbackRepository.save(lineFeedback);
+            }
+        }
+
+        // 3) 부가 업데이트
+        post.setFeedbackCount(post.getFeedbackCount() + 1);
+        postRepository.save(post);
+
+        UserProfile authorProfile = currentUser.getUserProfile();
+        if (authorProfile != null) {
+            authorProfile.setTotalFeedbackCount(authorProfile.getTotalFeedbackCount() + 1);
+        }
+
+        return FeedbackResponseDto.fromEntity(savedFeedback);
     }
+
 
     // ✅ 피드백 수정 (채택된 피드백은 수정 불가)
     public FeedbackResponseDto updateFeedback(Long feedbackId, FeedbackRequestDto dto, String currentUsername) {
