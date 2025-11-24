@@ -37,12 +37,15 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
                 .csrf(csrf -> csrf.disable())
-                .cors(cors -> cors.configurationSource(corsConfigurationSource())) // 🔥 반드시 추가
+                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
 
-                        // OPTIONS(Preflight) 무조건 허용 ⭐⭐⭐⭐⭐
+                        // 🔥 OPTIONS 허용
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+
+                        // 🔥 정적 리소스(profile-images) 허용
+                        .requestMatchers("/profile-images/**").permitAll()
 
                         // swagger
                         .requestMatchers(
@@ -81,29 +84,17 @@ public class SecurityConfig {
         return http.build();
     }
 
-
-    /**
-     * 🔹 CORS 규칙 정의
-     *  - 어디(origin)에서 오는 요청을 허용할지
-     *  - 어떤 메서드/헤더를 허용할지
-     */
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
 
-        // 프론트 개발 서버 Origin
-        config.setAllowedOrigins(List.of("http://localhost:3000"));
+        // 필요 시 프론트 서버 주소로 변경
+        config.setAllowedOrigins(List.of("http://localhost:3000", "*"));
 
-        // 허용할 HTTP 메서드들
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
-
-        // 어떤 헤더를 허용할지 (Authorization, Content-Type 등)
         config.setAllowedHeaders(List.of("*"));
-
-        // 인증정보(쿠키, Authorization 헤더 등) 포함 허용
         config.setAllowCredentials(true);
 
-        // 모든 경로에 위 설정 적용
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", config);
 
