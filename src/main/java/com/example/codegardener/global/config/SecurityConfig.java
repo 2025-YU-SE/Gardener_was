@@ -54,7 +54,12 @@ public class SecurityConfig {
                         ).permitAll()
 
                         // public endpoints
-                        .requestMatchers("/api/user/signup", "/api/user/login").permitAll()
+                        .requestMatchers(
+                                "/api/user/signup",
+                                "/api/user/login",
+                                "/api/user/check-username",
+                                "/api/user/check-email"
+                        ).permitAll()
 
                         // GET public
                         .requestMatchers(HttpMethod.GET,

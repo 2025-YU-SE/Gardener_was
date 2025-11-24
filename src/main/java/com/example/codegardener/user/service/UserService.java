@@ -81,6 +81,18 @@ public class UserService {
         return UserResponseDto.fromEntity(savedUser);
     }
 
+    // 아이디 중복 확인 (true: 사용 가능, false: 이미 존재)
+    @Transactional(readOnly = true)
+    public boolean isUserNameAvailable(String userName) {
+        return userRepository.findByUserName(userName).isEmpty();
+    }
+
+    // 이메일 중복 확인 (true: 사용 가능, false: 이미 존재)
+    @Transactional(readOnly = true)
+    public boolean isEmailAvailable(String email) {
+        return userRepository.findByEmail(email).isEmpty();
+    }
+
     // 로그인
     @Transactional(readOnly = true)
     public String login(LoginRequestDto loginRequestDto) {

@@ -44,6 +44,18 @@ public class UserController {
         return ResponseEntity.status(HttpStatus.CREATED).body(userResponseDto);
     }
 
+    @GetMapping("/check-username")
+    public ResponseEntity<Boolean> checkUserName(@RequestParam String userName) {
+        boolean isAvailable = userService.isUserNameAvailable(userName);
+        return ResponseEntity.ok(isAvailable);
+    }
+
+    @GetMapping("/check-email")
+    public ResponseEntity<Boolean> checkEmail(@RequestParam String email) {
+        boolean isAvailable = userService.isEmailAvailable(email);
+        return ResponseEntity.ok(isAvailable);
+    }
+
     @PostMapping("/login")
     public ResponseEntity<LoginResponseDto> login(@RequestBody LoginRequestDto loginRequestDto) {
         String token = userService.login(loginRequestDto);
