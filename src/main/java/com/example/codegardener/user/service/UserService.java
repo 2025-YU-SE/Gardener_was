@@ -145,7 +145,7 @@ public class UserService {
             file.transferTo(destinationFile);
 
             // DB 업데이트 (접근 URL 저장)
-            String fileUrl = "/images/" + storeFileName;
+            String fileUrl = "/profile-images/" + storeFileName;
 
             UserProfile profile = getUserProfile(user);
             profile.setUserPicture(fileUrl);
