@@ -41,7 +41,6 @@ public class PostResponseDto {
     private final String aiFeedback;
 
     public static PostResponseDto fromEntity(Post post) {
-
         String userPicture = null;
         UserProfile profile = post.getUser().getUserProfile();
         if (profile != null) {

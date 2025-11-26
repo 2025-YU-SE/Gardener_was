@@ -26,7 +26,6 @@ public class FeedbackResponseDto {
     private LocalDateTime updatedAt;
 
     public static FeedbackResponseDto fromEntity(Feedback feedback) {
-
         String userPicture = null;
         UserProfile profile = feedback.getUser().getUserProfile();
         if (profile != null) {
