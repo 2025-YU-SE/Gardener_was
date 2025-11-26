@@ -1,6 +1,7 @@
 package com.example.codegardener.post.dto;
 
 import com.example.codegardener.post.domain.Post;
+import com.example.codegardener.user.domain.UserProfile;
 import lombok.Builder;
 import lombok.Getter;
 
@@ -10,8 +11,11 @@ import java.time.LocalDateTime;
 @Builder
 public class PostResponseDto {
 
-    private final Long userId;
     private final Long postId;
+    private final Long userId;
+    private final String userName;
+    private final String userPicture;
+
 
     private final String title;
     private final String content;
@@ -37,9 +41,18 @@ public class PostResponseDto {
     private final String aiFeedback;
 
     public static PostResponseDto fromEntity(Post post) {
+
+        String userPicture = null;
+        UserProfile profile = post.getUser().getUserProfile();
+        if (profile != null) {
+            userPicture = profile.getUserPicture();
+        }
+
         return PostResponseDto.builder()
                 .postId(post.getPostId())
                 .userId(post.getUser().getUserId())
+                .userName(post.getUser().getUserName())
+                .userPicture(userPicture)
                 .title(post.getTitle())
                 .content(post.getContent())
                 .languages(post.getLangTags())
