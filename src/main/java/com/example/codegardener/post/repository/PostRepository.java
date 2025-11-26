@@ -88,5 +88,5 @@ public interface PostRepository extends JpaRepository<Post, Long> {
 
     Page<Post> findByUser_UserIdOrderByCreatedAtDesc(Long userId, Pageable pageable);
     List<Post> findFirst4ByUser_UserIdOrderByCreatedAtDesc(Long userId);
-    List<Post> findTop4ByContentsTypeOrderByLikesCountDesc(Boolean contentsType);
+    List<Post> findTop7ByContentsTypeOrderByLikesCountDesc(Boolean contentsType);
 }

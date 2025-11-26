@@ -377,7 +377,7 @@ public class PostService {
     // 좋아요 기준 인기 게시글 4개
     @Transactional(readOnly = true)
     public List<PostResponseDto> getPopularPosts(Boolean contentsType) {
-        List<Post> popularPosts = postRepository.findTop4ByContentsTypeOrderByLikesCountDesc(contentsType);
+        List<Post> popularPosts = postRepository.findTop7ByContentsTypeOrderByLikesCountDesc(contentsType);
         return popularPosts.stream()
                 .map(PostResponseDto::fromEntity)
                 .collect(Collectors.toList());
