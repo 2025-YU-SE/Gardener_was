@@ -172,30 +172,41 @@ public class FeedbackService {
     }
 
     // ✅ 좋아요 토글
+    // ============================================================
+// ✅ 좋아요 토글 (DB COUNT 기반)
+// ============================================================
     public String toggleLike(Long feedbackId, String currentUsername) {
         User currentUser = findUserByUsername(currentUsername);
 
         Feedback feedback = feedbackRepository.findById(feedbackId)
                 .orElseThrow(() -> new IllegalArgumentException("피드백을 찾을 수 없습니다."));
 
-        Optional<FeedbackLike> existingLike = feedbackLikesRepository.findByUserAndFeedback_FeedbackId(currentUser, feedbackId);
+        Optional<FeedbackLike> existingLike =
+                feedbackLikesRepository.findByUserAndFeedback_FeedbackId(currentUser, feedbackId);
 
+        // 좋아요 존재 → 취소
         if (existingLike.isPresent()) {
             feedbackLikesRepository.delete(existingLike.get());
-            feedback.setLikesCount(feedback.getLikesCount() - 1);
-            feedbackRepository.save(feedback);
-            return "좋아요 취소";
-        } else {
+        }
+        // 좋아요 없음 → 추가
+        else {
             FeedbackLike like = FeedbackLike.builder()
                     .feedback(feedback)
                     .user(currentUser)
                     .build();
             feedbackLikesRepository.save(like);
-            feedback.setLikesCount(feedback.getLikesCount() + 1);
-            feedbackRepository.save(feedback);
-            return "좋아요 추가";
         }
+
+        // ⭐ 항상 DB의 실제 좋아요 개수를 가져와 갱신
+        long likeCount = feedbackLikesRepository.countByFeedback_FeedbackId(feedbackId);
+
+        feedback.setLikesCount((int) likeCount);
+        feedbackRepository.save(feedback);
+
+        return existingLike.isPresent() ? "좋아요 취소" : "좋아요 추가";
     }
+
+
 
     // 피드백 채택
     @Transactional

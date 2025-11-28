@@ -13,4 +13,6 @@ public interface FeedbackLikesRepository extends JpaRepository<FeedbackLike, Lon
 
     // 특정 유저가 해당 피드백에 이미 좋아요를 눌렀는지 확인
     Optional<FeedbackLike> findByUserAndFeedback_FeedbackId(User user, Long feedbackId);
+
+    long countByFeedback_FeedbackId(Long feedbackId);
 }
