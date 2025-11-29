@@ -249,7 +249,6 @@ public class UserService {
     @Transactional
     public void awardPointsForAdoptedFeedback(User feedbackAuthor) {
         addPoints(feedbackAuthor, 100, "피드백 채택");
-        UserProfile profile = getUserProfile(feedbackAuthor);
     }
 
     @Transactional
