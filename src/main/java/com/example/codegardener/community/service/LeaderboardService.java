@@ -1,6 +1,8 @@
 package com.example.codegardener.community.service;
 
 import com.example.codegardener.community.repository.LeaderboardRepository;
+import com.example.codegardener.feedback.repository.FeedbackRepository;
+import com.example.codegardener.post.repository.PostRepository;
 import com.example.codegardener.user.domain.User;
 import com.example.codegardener.user.dto.UserResponseDto;
 import com.example.codegardener.user.repository.UserRepository;
@@ -22,7 +24,16 @@ import java.util.stream.Collectors;
 public class LeaderboardService {
 
     private final UserRepository userRepository;
+    private final PostRepository postRepository;
+    private final FeedbackRepository feedbackRepository;
     private final LeaderboardRepository leaderboardRepository;
+
+    private UserResponseDto convertToDto(User user) {
+        long postCount = postRepository.countByUser(user);
+        long feedbackCount = feedbackRepository.countByUser(user);
+        long adoptedCount = feedbackRepository.countByUserAndAdoptedTF(user, true);
+        return UserResponseDto.of(user, postCount, feedbackCount, adoptedCount);
+    }
 
     public List<UserResponseDto> getTop3Leaderboard(String sortBy) {
         return switch (sortBy.toLowerCase()) {
@@ -45,12 +56,13 @@ public class LeaderboardService {
     // 누적 포인트 TOP3
     public List<UserResponseDto> getTop3UsersByPoints() {
         return userRepository.findTop3ByOrderByUserProfile_PointsDesc().stream()
-                .map(UserResponseDto::fromEntity).collect(Collectors.toList());
+                .map(this::convertToDto)
+                .collect(Collectors.toList());
     }
     // 누적 포인트 페이징
     public Page<UserResponseDto> getUsersByPoints(Pageable pageable) {
         return userRepository.findAllByOrderByUserProfile_PointsDesc(pageable)
-                .map(UserResponseDto::fromEntity);
+                .map(this::convertToDto);
     }
 
     // 주간 피드백 등록 수 TOP 3
@@ -87,12 +99,11 @@ public class LeaderboardService {
             return Collections.emptyList();
         }
         List<Long> userIds = userStats.stream().map(LeaderboardRepository.UserFeedbackCount::getUserId).toList();
-
         List<User> users = userRepository.findAllByIdWithProfile(userIds);
 
         return userIds.stream()
                 .flatMap(id -> users.stream().filter(u -> u.getUserId().equals(id)))
-                .map(UserResponseDto::fromEntity)
+                .map(this::convertToDto)
                 .collect(Collectors.toList());
     }
 }

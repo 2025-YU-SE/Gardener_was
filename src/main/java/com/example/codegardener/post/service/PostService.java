@@ -1,6 +1,7 @@
 package com.example.codegardener.post.service;
 
 import com.example.codegardener.ai.service.AiFeedbackService;
+import com.example.codegardener.feedback.repository.FeedbackRepository;
 import com.example.codegardener.post.domain.Post;
 import com.example.codegardener.post.domain.PostLike;
 import com.example.codegardener.post.domain.PostScrap;
@@ -35,13 +36,20 @@ public class PostService {
     private final AiFeedbackService aiFeedbackService;
     private final PostLikeRepository postLikeRepository;
     private final PostScrapRepository postScrapRepository;
+    private final FeedbackRepository feedbackRepository;
+
+    private PostResponseDto convertToDto(Post post) {
+        long likes = postLikeRepository.countByPost(post);
+        long scraps = postScrapRepository.countByPost(post);
+        long feedbacks = feedbackRepository.countByPost(post);
+        return PostResponseDto.of(post, likes, scraps, feedbacks);
+    }
 
     // ====================== CRUD ======================
 
     @Transactional
     public PostResponseDto create(PostRequestDto dto, String currentUsername) {
         validateCodingTest(dto);
-
         User author = userRepository.findByUserName(currentUsername)
                 .orElseThrow(() -> new IllegalArgumentException("작성자 정보를 찾을 수 없습니다. username=" + currentUsername));
 
@@ -60,23 +68,15 @@ public class PostService {
 
         Post saved = postRepository.save(p);
 
-        UserProfile authorProfile = saved.getUser().getUserProfile();
-        if (authorProfile != null) {
-            authorProfile.setPostCount(authorProfile.getPostCount() + 1);
-            log.debug("Incremented post count for user {}", author.getUserName());
-        } else {
-            log.warn("UserProfile not found for author {} during post creation.", author.getUserName());
-        }
-
         log.info("[POST] saved postId={}", saved.getPostId());
-        return PostResponseDto.fromEntity(saved);
+        return convertToDto(saved);
     }
 
     @Transactional(readOnly = true)
     public List<PostResponseDto> list() {
         return postRepository.findAll()
                 .stream()
-                .map(PostResponseDto::fromEntity)
+                .map(this::convertToDto)
                 .toList();
     }
 
@@ -95,19 +95,24 @@ public class PostService {
         page = Math.max(page, 0);
         size = Math.min(Math.max(size, 1), 50);
 
-        Sort sort = switch (safe(sortBy)) {
-            case "views"    -> Sort.by(Sort.Direction.DESC, "views");
-            case "feedback" -> Sort.by(Sort.Direction.DESC, "feedbackCount");
-            default         -> Sort.by(Sort.Direction.DESC, "createdAt");
-        };
+        Page<Post> postPage;
 
-        Pageable pageable = PageRequest.of(page, size, sort);
+        if ("feedback".equalsIgnoreCase(sortBy)) {
+            Pageable pageable = PageRequest.of(page, size);
+            postPage = postRepository.findAllOrderByFeedbackCountDesc(contentsType, pageable);
+        } else {
+            Sort sort = switch (safe(sortBy)) {
+                case "views" -> Sort.by(Sort.Direction.DESC, "views");
+                default      -> Sort.by(Sort.Direction.DESC, "createdAt");
+            };
+            Pageable pageable = PageRequest.of(page, size, sort);
 
-        Page<Post> postPage = (contentsType == null)
-                ? postRepository.findAll(pageable)
-                : postRepository.findByContentsType(contentsType, pageable);
+            postPage = (contentsType == null)
+                    ? postRepository.findAll(pageable)
+                    : postRepository.findByContentsType(contentsType, pageable);
+        }
 
-        return postPage.map(PostResponseDto::fromEntity);
+        return postPage.map(this::convertToDto);
     }
 
     // ====================== 단건 조회 ======================
@@ -116,7 +121,7 @@ public class PostService {
     public PostResponseDto get(Long id) {
         Post p = postRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("게시물이 존재하지 않습니다."));
-        return PostResponseDto.fromEntity(p);
+        return convertToDto(p);
     }
 
     @Transactional
@@ -144,7 +149,7 @@ public class PostService {
         p.setLangTags(normalizeCsv(dto.getLanguages()));
         p.setStackTags(normalizeCsv(dto.getStacks()));
 
-        return PostResponseDto.fromEntity(p);
+        return convertToDto(p);
     }
 
     @Transactional
@@ -201,7 +206,7 @@ public class PostService {
                 pageable
         );
 
-        return data.map(PostResponseDto::fromEntity);
+        return data.map(this::convertToDto);
     }
 
     // ====================== AI 피드백 ======================
@@ -218,7 +223,7 @@ public class PostService {
         String aiText = aiFeedbackService.generateTextForPost(postId);
         p.setAiFeedback(aiText);
         log.info("[AI] Feedback generated manually for postId={}", postId);
-        return PostResponseDto.fromEntity(p);
+        return convertToDto(p);
     }
 
     @Transactional(readOnly = true)
@@ -301,13 +306,11 @@ public class PostService {
 
         if (existingLike.isPresent()) {
             postLikeRepository.delete(existingLike.get());
-            post.setLikesCount(Math.max(0, post.getLikesCount() - 1));
         } else {
             PostLike newLike = new PostLike();
             newLike.setUser(user);
             newLike.setPost(post);
             postLikeRepository.save(newLike);
-            post.setLikesCount(post.getLikesCount() + 1);
         }
     }
 
@@ -322,14 +325,12 @@ public class PostService {
 
         if (existingScrap.isPresent()) {
             postScrapRepository.delete(existingScrap.get());
-            post.setScrapCount(Math.max(0, post.getScrapCount() - 1));
         } else {
             PostScrap newScrap = new PostScrap();
             newScrap.setUser(user);
             newScrap.setPost(post);
             newScrap.setCreatedAt(LocalDateTime.now());
             postScrapRepository.save(newScrap);
-            post.setScrapCount(post.getScrapCount() + 1);
         }
     }
 
@@ -338,10 +339,8 @@ public class PostService {
     public Page<PostResponseDto> getScrappedPostsByUsername(String username, Pageable pageable) {
         User user = userRepository.findByUserName(username)
                 .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
-
         Page<PostScrap> scraps = postScrapRepository.findAllByUser(user, pageable);
-
-        return scraps.map(scrap -> PostResponseDto.fromEntity(scrap.getPost()));
+        return scraps.map(scrap -> convertToDto(scrap.getPost()));
     }
 
     // 마이페이지: 사용자가 최근 스크랩한 게시물 4개
@@ -349,37 +348,28 @@ public class PostService {
     public List<PostResponseDto> getRecentScrappedPostsByUsername(String username) {
         User user = userRepository.findByUserName(username)
                 .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
-
         List<PostScrap> scraps = postScrapRepository.findFirst4ByUserOrderByCreatedAtDesc(user);
-
-        return scraps.stream()
-                .map(PostScrap::getPost)
-                .map(PostResponseDto::fromEntity)
-                .collect(Collectors.toList());
+        return scraps.stream().map(scrap -> convertToDto(scrap.getPost())).collect(Collectors.toList());
     }
 
     // 마이페이지: 사용자가 등록한 게시물 페이징
     @Transactional(readOnly = true)
     public Page<PostResponseDto> getPostsByUserId(Long userId, Pageable pageable) {
         Page<Post> posts = postRepository.findByUser_UserIdOrderByCreatedAtDesc(userId, pageable);
-        return posts.map(PostResponseDto::fromEntity);
+        return posts.map(this::convertToDto);
     }
 
     // 마이페이지: 사용자가 최근 등록한 게시물 4개
     @Transactional(readOnly = true)
     public List<PostResponseDto> getRecentPostsByUserId(Long userId) {
         List<Post> posts = postRepository.findFirst4ByUser_UserIdOrderByCreatedAtDesc(userId);
-        return posts.stream()
-                .map(PostResponseDto::fromEntity)
-                .collect(Collectors.toList());
+        return posts.stream().map(this::convertToDto).collect(Collectors.toList());
     }
 
     // 좋아요 기준 인기 게시글 4개
     @Transactional(readOnly = true)
     public List<PostResponseDto> getPopularPosts(Boolean contentsType) {
-        List<Post> popularPosts = postRepository.findTop7ByContentsTypeOrderByLikesCountDesc(contentsType);
-        return popularPosts.stream()
-                .map(PostResponseDto::fromEntity)
-                .collect(Collectors.toList());
+        List<Post> popularPosts = postRepository.findTop7ByLikes(contentsType);
+        return popularPosts.stream().map(this::convertToDto).collect(Collectors.toList());
     }
 }

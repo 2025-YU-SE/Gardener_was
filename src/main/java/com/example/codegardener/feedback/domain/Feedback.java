@@ -39,9 +39,6 @@ public class Feedback {
     @Column(nullable = false)
     private Boolean adoptedTF = false; // 채택 여부
 
-    @Column(nullable = false)
-    private Integer likesCount = 0; // 좋아요 수
-
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
 

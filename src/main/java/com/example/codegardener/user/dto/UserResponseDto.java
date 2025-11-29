@@ -2,10 +2,8 @@ package com.example.codegardener.user.dto;
 
 import com.example.codegardener.user.domain.Role;
 import com.example.codegardener.user.domain.User;
-import com.example.codegardener.user.domain.UserProfile; // UserProfile 임포트
-
+import com.example.codegardener.user.domain.UserProfile;
 import lombok.Getter;
-
 import java.time.LocalDate;
 
 @Getter
@@ -19,12 +17,14 @@ public class UserResponseDto {
     private final String userPicture;
     private final Integer points;
     private final String grade;
-    private final Integer postCount;
-    private final Integer totalFeedbackCount;
-    private final Integer adoptedFeedbackCount;
+
+    private final Long postCount;
+    private final Long totalFeedbackCount;
+    private final Long adoptedFeedbackCount;
+
     private final LocalDate lastAttendanceDate;
 
-    private UserResponseDto(User user) {
+    private UserResponseDto(User user, long postCount, long totalFeedbackCount, long adoptedFeedbackCount) {
         this.userId = user.getUserId();
         this.userName = user.getUserName();
         this.email = user.getEmail();
@@ -36,23 +36,20 @@ public class UserResponseDto {
             this.userPicture = profile.getUserPicture();
             this.points = profile.getPoints();
             this.grade = profile.getGrade();
-            this.postCount = profile.getPostCount();
-            this.totalFeedbackCount = profile.getTotalFeedbackCount();
-            this.adoptedFeedbackCount = profile.getAdoptedFeedbackCount();
             this.lastAttendanceDate = profile.getLastAttendanceDate();
         } else {
             this.userPicture = null;
             this.points = 0;
             this.grade = null;
-            this.postCount = 0;
-            this.totalFeedbackCount = 0;
-            this.adoptedFeedbackCount = 0;
             this.lastAttendanceDate = null;
         }
+
+        this.postCount = postCount;
+        this.totalFeedbackCount = totalFeedbackCount;
+        this.adoptedFeedbackCount = adoptedFeedbackCount;
     }
 
-    public static UserResponseDto fromEntity(User user) {
-        if (user == null) return null;
-        return new UserResponseDto(user);
+    public static UserResponseDto of(User user, long postCount, long totalFeedbackCount, long adoptedFeedbackCount) {
+        return new UserResponseDto(user, postCount, totalFeedbackCount, adoptedFeedbackCount);
     }
 }

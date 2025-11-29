@@ -5,7 +5,9 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
+import com.example.codegardener.feedback.repository.FeedbackRepository;
 import com.example.codegardener.post.dto.PostResponseDto;
+import com.example.codegardener.post.repository.PostRepository;
 import com.example.codegardener.post.service.PostService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -35,12 +37,15 @@ import com.example.codegardener.user.dto.SignUpRequestDto;
 import com.example.codegardener.user.dto.UserResponseDto;
 import com.example.codegardener.user.repository.UserRepository;
 
+
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class UserService {
 
     private final UserRepository userRepository;
+    private final PostRepository postRepository;
+    private final FeedbackRepository feedbackRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
     private final TokenBlacklistRepository tokenBlacklistRepository;
@@ -76,9 +81,7 @@ public class UserService {
         updateGrade(userProfile);
 
         User savedUser = userRepository.save(newUser);
-        log.info("New user signed up: {} (ID: {}), initial points: 1000, grade: {}",
-                savedUser.getUserName(), savedUser.getUserId(), savedUser.getUserProfile().getGrade());
-        return UserResponseDto.fromEntity(savedUser);
+        return UserResponseDto.of(savedUser, 0L, 0L, 0L);
     }
 
     // 아이디 중복 확인 (true: 사용 가능, false: 이미 존재)
@@ -172,9 +175,13 @@ public class UserService {
     public UserResponseDto getUserProfile(Long userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다. ID: " + userId));
-        return UserResponseDto.fromEntity(user);
-    }
 
+        long postCount = postRepository.countByUser(user);
+        long feedbackCount = feedbackRepository.countByUser(user);
+        long adoptedCount = feedbackRepository.countByUserAndAdoptedTF(user, true);
+
+        return UserResponseDto.of(user, postCount, feedbackCount, adoptedCount);
+    }
     private UserProfile getUserProfile(User user) {
         UserProfile profile = user.getUserProfile();
         if (profile == null) {
@@ -243,7 +250,6 @@ public class UserService {
     public void awardPointsForAdoptedFeedback(User feedbackAuthor) {
         addPoints(feedbackAuthor, 100, "피드백 채택");
         UserProfile profile = getUserProfile(feedbackAuthor);
-        profile.setAdoptedFeedbackCount(profile.getAdoptedFeedbackCount() + 1);
     }
 
     @Transactional

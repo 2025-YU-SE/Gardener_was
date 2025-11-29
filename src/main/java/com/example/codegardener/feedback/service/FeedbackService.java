@@ -38,6 +38,11 @@ public class FeedbackService {
     private final PostRepository postRepository;
     private final UserService userService;
 
+    private FeedbackResponseDto convertToDto(Feedback feedback) {
+        long likes = feedbackLikesRepository.countByFeedback(feedback);
+        return FeedbackResponseDto.of(feedback, likes);
+    }
+
     private User findUserByUsername(String username) {
         return userRepository.findByUserName(username)
                 .orElseThrow(() -> new IllegalArgumentException("인증된 사용자를 찾을 수 없습니다: " + username));
@@ -48,39 +53,15 @@ public class FeedbackService {
     // ============================================================
 
     // ✅ 피드백 작성
-    /*public FeedbackResponseDto createFeedback(FeedbackRequestDto dto, String currentUsername) {
-        User currentUser = findUserByUsername(currentUsername);
-        Post post = postRepository.findById(dto.getPostId())
-                .orElseThrow(() -> new IllegalArgumentException("게시물을 찾을 수 없습니다."));
-
-        Feedback feedback = dto.toEntity(currentUser, post);
-        Feedback savedFeedback = feedbackRepository.save(feedback);
-
-        post.setFeedbackCount(post.getFeedbackCount() + 1);
-        postRepository.save(post); // 게시물의 피드백 수 업데이트
-
-        UserProfile authorProfile = currentUser.getUserProfile();
-        if (authorProfile != null) {
-            authorProfile.setTotalFeedbackCount(authorProfile.getTotalFeedbackCount() + 1);
-            log.debug("Incremented total feedback count for user {}", currentUser.getUserName());
-        } else {
-            log.warn("UserProfile not found for author {} during feedback creation.", currentUser.getUserName());
-        }
-
-        return FeedbackResponseDto.fromEntity(savedFeedback);
-    }*/
-
     public FeedbackResponseDto createFeedback(FeedbackRequestDto dto, String currentUsername) {
-
-        User currentUser = findUserByUsername(currentUsername);
+        User currentUser = userRepository.findByUserName(currentUsername)
+                .orElseThrow(() -> new IllegalArgumentException("사용자 찾기 실패"));
         Post post = postRepository.findById(dto.getPostId())
-                .orElseThrow(() -> new IllegalArgumentException("게시물을 찾을 수 없습니다."));
+                .orElseThrow(() -> new IllegalArgumentException("게시물 찾기 실패"));
 
-        // 1) 피드백 먼저 저장
         Feedback feedback = dto.toEntity(currentUser, post);
         Feedback savedFeedback = feedbackRepository.save(feedback);
 
-        // 2) 라인피드백 리스트가 존재하면 저장
         if (dto.getLineFeedbacks() != null) {
             for (LineFeedbackDto lfDto : dto.getLineFeedbacks()) {
                 LineFeedback lineFeedback = LineFeedback.builder()
@@ -90,21 +71,11 @@ public class FeedbackService {
                         .endLineNumber(lfDto.getEndLineNumber())
                         .content(lfDto.getContent())
                         .build();
-
                 lineFeedbackRepository.save(lineFeedback);
             }
         }
 
-        // 3) 부가 업데이트
-        post.setFeedbackCount(post.getFeedbackCount() + 1);
-        postRepository.save(post);
-
-        UserProfile authorProfile = currentUser.getUserProfile();
-        if (authorProfile != null) {
-            authorProfile.setTotalFeedbackCount(authorProfile.getTotalFeedbackCount() + 1);
-        }
-
-        return FeedbackResponseDto.fromEntity(savedFeedback);
+        return convertToDto(savedFeedback);
     }
 
 
@@ -125,7 +96,7 @@ public class FeedbackService {
         feedback.setRating(dto.getRating());
         feedback.setUpdatedAt(java.time.LocalDateTime.now());
 
-        return FeedbackResponseDto.fromEntity(feedbackRepository.save(feedback));
+        return convertToDto(feedbackRepository.save(feedback));
     }
 
     // ✅ 피드백 삭제
@@ -153,28 +124,24 @@ public class FeedbackService {
         }
 
         feedbackRepository.delete(feedback);
-
-        post.setFeedbackCount(Math.max(0, post.getFeedbackCount() - 1));
     }
 
     // ✅ 피드백 상세조회 (라인피드백 + 댓글 포함)
     public FeedbackDetailResponseDto getFeedbackDetail(Long feedbackId) {
         Feedback feedback = feedbackRepository.findById(feedbackId)
                 .orElseThrow(() -> new IllegalArgumentException("피드백을 찾을 수 없습니다."));
-        return FeedbackDetailResponseDto.fromEntity(feedback);
+        long likes = feedbackLikesRepository.countByFeedback(feedback);
+        return FeedbackDetailResponseDto.of(feedback, likes);
     }
 
     // ✅ 게시물별 피드백 목록 조회
     public List<FeedbackResponseDto> getFeedbackListByPost(Long postId) {
         return feedbackRepository.findByPost_PostId(postId).stream()
-                .map(FeedbackResponseDto::fromEntity)
+                .map(this::convertToDto)
                 .collect(Collectors.toList());
     }
 
     // ✅ 좋아요 토글
-    // ============================================================
-// ✅ 좋아요 토글 (DB COUNT 기반)
-// ============================================================
     public String toggleLike(Long feedbackId, String currentUsername) {
         User currentUser = findUserByUsername(currentUsername);
 
@@ -197,16 +164,10 @@ public class FeedbackService {
             feedbackLikesRepository.save(like);
         }
 
-        // ⭐ 항상 DB의 실제 좋아요 개수를 가져와 갱신
-        long likeCount = feedbackLikesRepository.countByFeedback_FeedbackId(feedbackId);
-
-        feedback.setLikesCount((int) likeCount);
         feedbackRepository.save(feedback);
 
         return existingLike.isPresent() ? "좋아요 취소" : "좋아요 추가";
     }
-
-
 
     // 피드백 채택
     @Transactional
@@ -342,7 +303,7 @@ public class FeedbackService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
         Page<Feedback> feedbacks = feedbackRepository.findByUserOrderByCreatedAtDesc(user, pageable);
-        return feedbacks.map(FeedbackResponseDto::fromEntity);
+        return feedbacks.map(this::convertToDto);
     }
 
     // 마이페이지: 사용자 피드백 최근 4개
@@ -352,7 +313,7 @@ public class FeedbackService {
                 .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
         List<Feedback> feedbacks = feedbackRepository.findFirst4ByUserOrderByCreatedAtDesc(user);
         return feedbacks.stream()
-                .map(FeedbackResponseDto::fromEntity)
+                .map(this::convertToDto)
                 .collect(Collectors.toList());
     }
 }

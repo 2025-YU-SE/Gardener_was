@@ -14,9 +14,10 @@ public interface PostScrapRepository extends JpaRepository<PostScrap, Long> {
     List<PostScrap> findAllByUser(User user);
     Optional<PostScrap> findByUserAndPost(User user, Post post);
 
-    // 마이페이지에서 사용:
     // 사용자가 스크랩한 게시물 페이징
     Page<PostScrap> findAllByUser(User user, Pageable pageable);
     // 사용자가 최근 스크랩한 게시물 4개
     List<PostScrap> findFirst4ByUserOrderByCreatedAtDesc(User user);
+
+    long countByPost(Post post);
 }

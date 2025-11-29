@@ -1,6 +1,7 @@
 package com.example.codegardener.post.repository;
 
 import com.example.codegardener.post.domain.Post;
+import com.example.codegardener.user.domain.User;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -56,8 +57,8 @@ public interface PostRepository extends JpaRepository<Post, Long> {
           AND ( :langRegex  IS NULL OR (p.lang_tags  IS NOT NULL AND LOWER(p.lang_tags)  REGEXP :langRegex) )
           AND ( :stackRegex IS NULL OR (p.stack_tags IS NOT NULL AND LOWER(p.stack_tags) REGEXP :stackRegex) )
         ORDER BY
-          CASE WHEN :sort = 'views'    THEN p.views          END DESC,
-          CASE WHEN :sort = 'feedback' THEN p.feedback_count END DESC,
+          CASE WHEN :sort = 'views'    THEN p.views END DESC,
+          CASE WHEN :sort = 'feedback' THEN (SELECT COUNT(*) FROM feedback f WHERE f.post_id = p.post_id) END DESC,
           p.created_at DESC
         """,
             countQuery = """
@@ -65,12 +66,7 @@ public interface PostRepository extends JpaRepository<Post, Long> {
         FROM post p
         LEFT JOIN `user` u ON u.user_id = p.user_id
         WHERE
-          (
-            :qLike IS NULL
-            OR LOWER(p.title)     LIKE :qLike
-            OR LOWER(p.content)   LIKE :qLike
-            OR LOWER(u.user_name) LIKE :qLike
-          )
+          (:qLike IS NULL OR LOWER(p.title) LIKE :qLike OR LOWER(p.content) LIKE :qLike OR LOWER(u.user_name) LIKE :qLike)
           AND ( :ct IS NULL OR p.contents_type = :ct )
           AND ( :langRegex  IS NULL OR (p.lang_tags  IS NOT NULL AND LOWER(p.lang_tags)  REGEXP :langRegex) )
           AND ( :stackRegex IS NULL OR (p.stack_tags IS NOT NULL AND LOWER(p.stack_tags) REGEXP :stackRegex) )
@@ -86,7 +82,20 @@ public interface PostRepository extends JpaRepository<Post, Long> {
             Pageable pageable
     );
 
+    @Query("SELECT p FROM Post p LEFT JOIN p.feedbacks f " +
+            "WHERE (:contentsType IS NULL OR p.contentsType = :contentsType) " +
+            "GROUP BY p " +
+            "ORDER BY COUNT(f) DESC, p.createdAt DESC")
+    Page<Post> findAllOrderByFeedbackCountDesc(@Param("contentsType") Boolean contentsType, Pageable pageable);
+
+    @Query("SELECT p FROM Post p LEFT JOIN p.likes l " +
+            "WHERE (:contentsType IS NULL OR p.contentsType = :contentsType) " +
+            "GROUP BY p " +
+            "ORDER BY COUNT(l) DESC, p.createdAt DESC " +
+            "LIMIT 7")
+    List<Post> findTop7ByLikes(@Param("contentsType") Boolean contentsType);
+
+    long countByUser(User user);
     Page<Post> findByUser_UserIdOrderByCreatedAtDesc(Long userId, Pageable pageable);
     List<Post> findFirst4ByUser_UserIdOrderByCreatedAtDesc(Long userId);
-    List<Post> findTop7ByContentsTypeOrderByLikesCountDesc(Boolean contentsType);
 }

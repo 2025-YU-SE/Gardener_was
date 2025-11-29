@@ -26,7 +26,6 @@ public class FeedbackRequestDto {
                 .content(content == null ? null : content.trim())
                 .rating(rating)
                 .adoptedTF(false)
-                .likesCount(0)
                 .build();
     }
 }

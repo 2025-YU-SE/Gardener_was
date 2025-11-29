@@ -16,7 +16,6 @@ public class PostResponseDto {
     private final String userName;
     private final String userPicture;
 
-
     private final String title;
     private final String content;
 
@@ -30,17 +29,17 @@ public class PostResponseDto {
     private final String githubRepoUrl;
     private final String problemStatement;
 
-    private final int likesCount;
+    private final long likesCount;
+    private final long scrapCount;
+    private final long feedbackCount;
     private final int views;
-    private final int scrapCount;
-    private final int feedbackCount;
 
     private final LocalDateTime createdAt;
     private final LocalDateTime modifiedAt;
 
     private final String aiFeedback;
 
-    public static PostResponseDto fromEntity(Post post) {
+    public static PostResponseDto of(Post post, long likesCount, long scrapCount, long feedbackCount){
         String userPicture = null;
         UserProfile profile = post.getUser().getUserProfile();
         if (profile != null) {
@@ -61,10 +60,10 @@ public class PostResponseDto {
                 .contentsType(post.getContentsType())
                 .githubRepoUrl(post.getGithubRepoUrl())
                 .problemStatement(post.getProblemStatement())
-                .likesCount(post.getLikesCount())
+                .likesCount(likesCount)
+                .scrapCount(scrapCount)
+                .feedbackCount(feedbackCount)
                 .views(post.getViews())
-                .scrapCount(post.getScrapCount())
-                .feedbackCount(post.getFeedbackCount())
                 .createdAt(post.getCreatedAt())
                 .modifiedAt(post.getModifiedAt())
                 .aiFeedback(post.getAiFeedback())
