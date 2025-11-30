@@ -1,3 +1,4 @@
+// 게시글 내용을 기반으로 AI코드 리뷰 피드백을 생성하는 서비스
 package com.example.codegardener.ai.service;
 
 import com.example.codegardener.post.domain.Post;
@@ -16,40 +17,45 @@ import org.springframework.web.reactive.function.client.WebClient;
 @RequiredArgsConstructor
 public class AiFeedbackService {
 
+    // 게시글 조회용 Repository
     private final PostRepository postRepository;
+
+    // OpenAI 호출용 WebClient
     private final WebClient.Builder webClientBuilder;
 
+    // Mock 모드 여부 (개발/테스트용)
     @Value("${ai.mock.enabled:true}")
     private boolean mockEnabled;
 
+    //OPENAI API key
     @Value("${ai.openai.api-key:}")
     private String openAiApiKey;
 
+    // 사용 모델명
     @Value("${ai.openai.model:gpt-4o-mini}")
     private String model;
 
+    // 응답 다양성 조절 파라미터
     @Value("${ai.openai.temperature:0.7}")
     private double temperature;
 
+    // 최대 토큰 수
     @Value("${ai.openai.max-tokens:800}")
     private int maxTokens;
 
-    // 게시글 기반 AI 피드백 생성
+    // 게시글 ID 기반 AI 피드백 텍스트를 생성
     public String generateTextForPost(Long postId) {
         Post post = postRepository.findById(postId)
                 .orElseThrow(() -> new IllegalArgumentException("게시물이 존재하지 않습니다."));
-
         String prompt = buildPrompt(post);
-
         if (mockEnabled) {
             log.info("[AI] Mock 모드 활성화 - 실제 API 호출 없이 텍스트 반환");
             return mockResponse();
         }
-
         return callOpenAi(prompt);
     }
 
-    // 프롬포트
+    // 게시물 정보를 기반으로 OpenAI 요청용 프롬포트 생성
     private String buildPrompt(Post p) {
         return """
         당신은 숙련된 코드 리뷰어입니다.
@@ -72,6 +78,7 @@ public class AiFeedbackService {
         );
     }
 
+    // Null Safe 문자열 처리
     private String safe(String text) {
         return text == null ? "" : text;
     }
@@ -115,7 +122,8 @@ public class AiFeedbackService {
             // JSON 파싱 (JSONArray length()로 변경)
             JSONObject json = new JSONObject(response);
             JSONArray choices = json.getJSONArray("choices");
-            if (choices.isEmpty()) return "AI 응답이 없습니다.";
+            if (choices.length() == 0)
+                return "AI 응답이 없습니다.";
 
             JSONObject message = choices.getJSONObject(0).getJSONObject("message");
             String content = message.optString("content", "AI 응답을 파싱하지 못했습니다.");
@@ -129,8 +137,13 @@ public class AiFeedbackService {
         }
     }
 
+    // JSON 전송용 문자열 이스케이프 처리
     private String escape(String text) {
-        return text.replace("\"", "\\\"").replace("\n", "\\n");
+        if (text == null) return "";
+        return text
+                .replace("\\", "\\\\")
+                .replace("\"", "\\\"")
+                .replace("\n", "\\n");
     }
 
     // 테스트용 Mock 응답
