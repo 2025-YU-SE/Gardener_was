@@ -8,6 +8,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Repository
@@ -20,5 +21,7 @@ public interface FeedbackRepository extends JpaRepository<Feedback, Long> {
     List<Feedback> findByPost_PostId(Long postId);
     Page<Feedback> findByUserOrderByCreatedAtDesc(User user, Pageable pageable);
     List<Feedback> findFirst4ByUserOrderByCreatedAtDesc(User user);
+
+    int countByCreatedAtBetween(LocalDateTime start, LocalDateTime end);
 
 }

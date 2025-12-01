@@ -19,6 +19,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.security.access.AccessDeniedException;
 
+import java.time.DayOfWeek;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -164,7 +167,7 @@ public class FeedbackService {
             feedbackLikesRepository.save(like);
         }
 
-        feedbackRepository.save(feedback);
+        //feedbackRepository.save(feedback);
 
         return existingLike.isPresent() ? "좋아요 취소" : "좋아요 추가";
     }
@@ -316,4 +319,17 @@ public class FeedbackService {
                 .map(this::convertToDto)
                 .collect(Collectors.toList());
     }
+
+    // 주간 피드백
+    public int getThisWeekFeedbackCount() {
+        LocalDate today = LocalDate.now();
+        LocalDate monday = today.with(DayOfWeek.MONDAY);
+        LocalDate sunday = today.with(DayOfWeek.SUNDAY);
+
+        LocalDateTime start = monday.atStartOfDay();
+        LocalDateTime end = sunday.atTime(23, 59, 59);
+
+        return feedbackRepository.countByCreatedAtBetween(start, end);
+    }
+
 }

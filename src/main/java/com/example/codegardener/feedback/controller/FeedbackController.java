@@ -197,4 +197,10 @@ public class FeedbackController {
     ) {
         return ResponseEntity.ok(feedbackService.getCommentsByFeedback(feedbackId));
     }
+
+    // 이번 주 피드백 수 API
+    @GetMapping("/week")
+    public int getWeeklyFeedbackCount() {
+        return feedbackService.getThisWeekFeedbackCount();
+    }
 }
