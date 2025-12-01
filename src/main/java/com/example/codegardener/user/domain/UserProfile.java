@@ -15,7 +15,7 @@ import lombok.NoArgsConstructor;
 public class UserProfile {
 
     @Id
-    @Column(name = "user_profile_id")
+    @Column(name = "user_id")
     private Long userProfileId;
 
     @OneToOne(fetch = FetchType.LAZY)
