@@ -19,7 +19,7 @@ public class LineFeedbackDto {
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
-    public static LineFeedbackDto fromEntity(LineFeedback entity) {
+    public static LineFeedbackDto from(LineFeedback entity) {
         return LineFeedbackDto.builder()
                 .lineFeedbackId(entity.getLineFeedbackId())
                 .userId(entity.getUser().getUserId())

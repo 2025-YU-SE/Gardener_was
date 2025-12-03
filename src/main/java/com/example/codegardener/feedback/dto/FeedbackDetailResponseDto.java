@@ -53,12 +53,12 @@ public class FeedbackDetailResponseDto {
                 .updatedAt(feedback.getUpdatedAt())
                 .lineFeedbacks(
                         feedback.getLineFeedbackList().stream()
-                                .map(LineFeedbackDto::fromEntity)
+                                .map(LineFeedbackDto::from)
                                 .collect(Collectors.toList())
                 )
                 .comments(
                         feedback.getComments().stream()
-                                .map(FeedbackCommentDto::fromEntity)
+                                .map(FeedbackCommentDto::from)
                                 .collect(Collectors.toList())
                 )
                 .build();

@@ -7,7 +7,6 @@ import com.example.codegardener.post.domain.Post;
 import com.example.codegardener.post.repository.PostRepository;
 import com.example.codegardener.user.domain.User;
 import com.example.codegardener.user.domain.Role;
-import com.example.codegardener.user.domain.UserProfile;
 import com.example.codegardener.user.repository.UserRepository;
 import com.example.codegardener.user.service.UserService;
 import org.springframework.data.domain.Page;
@@ -19,9 +18,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.security.access.AccessDeniedException;
 
-import java.time.DayOfWeek;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -244,14 +240,14 @@ public class FeedbackService {
                 .content(dto.getContent())
                 .build();
 
-        return LineFeedbackDto.fromEntity(lineFeedbackRepository.save(lineFeedback));
+        return LineFeedbackDto.from(lineFeedbackRepository.save(lineFeedback));
     }
 
     // ✅ [READ] 특정 피드백의 라인피드백 목록 조회
     public List<LineFeedbackDto> getLineFeedbacks(Long feedbackId) {
         return lineFeedbackRepository.findByFeedback_FeedbackId(feedbackId)
                 .stream()
-                .map(LineFeedbackDto::fromEntity)
+                .map(LineFeedbackDto::from)
                 .collect(Collectors.toList());
     }
 
@@ -271,7 +267,7 @@ public class FeedbackService {
 
         lineFeedback.setContent(dto.getContent());
         lineFeedback.setEndLineNumber(dto.getEndLineNumber());
-        return LineFeedbackDto.fromEntity(lineFeedbackRepository.save(lineFeedback));
+        return LineFeedbackDto.from(lineFeedbackRepository.save(lineFeedback));
     }
 
     // ✅ [DELETE] 라인피드백 삭제
@@ -307,13 +303,13 @@ public class FeedbackService {
                 .content(dto.getContent())
                 .build();
 
-        return FeedbackCommentDto.fromEntity(feedbackCommentRepository.save(comment));
+        return FeedbackCommentDto.from(feedbackCommentRepository.save(comment));
     }
 
     // ✅ 댓글 목록 조회
     public List<FeedbackCommentDto> getCommentsByFeedback(Long feedbackId) {
         return feedbackCommentRepository.findByFeedback_FeedbackId(feedbackId).stream()
-                .map(FeedbackCommentDto::fromEntity)
+                .map(FeedbackCommentDto::from)
                 .collect(Collectors.toList());
     }
 

@@ -19,7 +19,7 @@ public class FeedbackCommentDto {
     private String content;
     private LocalDateTime createdAt;
 
-    public static FeedbackCommentDto fromEntity(FeedbackComment comment) {
+    public static FeedbackCommentDto from(FeedbackComment comment) {
         String userPicture = null;
         UserProfile profile = comment.getUser().getUserProfile();
         if (profile != null) {
