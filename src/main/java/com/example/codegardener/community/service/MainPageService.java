@@ -26,6 +26,7 @@ public class MainPageService {
 
     public MainPageResponseDto getMainPageData(UserDetails userDetails) {
         // 로그인 사용자 정보 조회
+        String currentUsername = (userDetails != null) ? userDetails.getUsername() : null;
         UserResponseDto userInfo = null;
         if (userDetails != null) {
             User user = userRepository.findByUserName(userDetails.getUsername()).orElse(null);
@@ -42,8 +43,8 @@ public class MainPageService {
         List<UserResponseDto> topPointUsers = leaderboardService.getTop3UsersByPoints();
 
         // PostService를 호출하여 각각의 인기 게시물 목록을 가져옴
-        List<PostResponseDto> devPosts = postService.getPopularPosts(true); // true: 개발
-        List<PostResponseDto> codingTestPosts = postService.getPopularPosts(false); // false: 코테
+        List<PostResponseDto> devPosts = postService.getPopularPosts(true, currentUsername); // true: 개발
+        List<PostResponseDto> codingTestPosts = postService.getPopularPosts(false, currentUsername); // false: 코테
 
         // Builder를 사용하여 DTO를 생성하고 반환
         return MainPageResponseDto.builder()

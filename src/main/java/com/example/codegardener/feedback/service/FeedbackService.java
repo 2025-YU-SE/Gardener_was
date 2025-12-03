@@ -41,9 +41,23 @@ public class FeedbackService {
     private final PostRepository postRepository;
     private final UserService userService;
 
-    private FeedbackResponseDto convertToDto(Feedback feedback) {
+    private FeedbackResponseDto convertToDto(Feedback feedback, User currentUser) {
         long likes = feedbackLikesRepository.countByFeedback(feedback);
-        return FeedbackResponseDto.of(feedback, likes);
+        boolean liked = (currentUser != null) && feedbackLikesRepository.existsByUserAndFeedback(currentUser, feedback);
+
+        return FeedbackResponseDto.of(feedback, likes, liked);
+    }
+
+    private FeedbackDetailResponseDto convertToDetailDto(Feedback feedback, User currentUser) {
+        long likes = feedbackLikesRepository.countByFeedback(feedback);
+        boolean liked = (currentUser != null) && feedbackLikesRepository.existsByUserAndFeedback(currentUser, feedback);
+
+        return FeedbackDetailResponseDto.of(feedback, likes, liked);
+    }
+
+    private User getUserOrNull(String username) {
+        if (username == null) return null;
+        return userRepository.findByUserName(username).orElse(null);
     }
 
     private User findUserByUsername(String username) {
@@ -78,7 +92,7 @@ public class FeedbackService {
             }
         }
 
-        return convertToDto(savedFeedback);
+        return convertToDto(savedFeedback, currentUser);
     }
 
 
@@ -99,7 +113,7 @@ public class FeedbackService {
         feedback.setRating(dto.getRating());
         feedback.setUpdatedAt(java.time.LocalDateTime.now());
 
-        return convertToDto(feedbackRepository.save(feedback));
+        return convertToDto(feedbackRepository.save(feedback), currentUser);
     }
 
     // ✅ 피드백 삭제
@@ -130,17 +144,20 @@ public class FeedbackService {
     }
 
     // ✅ 피드백 상세조회 (라인피드백 + 댓글 포함)
-    public FeedbackDetailResponseDto getFeedbackDetail(Long feedbackId) {
+    public FeedbackDetailResponseDto getFeedbackDetail(Long feedbackId, String currentUsername) {
+        User currentUser = getUserOrNull(currentUsername);
         Feedback feedback = feedbackRepository.findById(feedbackId)
                 .orElseThrow(() -> new IllegalArgumentException("피드백을 찾을 수 없습니다."));
-        long likes = feedbackLikesRepository.countByFeedback(feedback);
-        return FeedbackDetailResponseDto.of(feedback, likes);
+        return convertToDetailDto(feedback, currentUser);
     }
 
     // ✅ 게시물별 피드백 목록 조회
-    public List<FeedbackResponseDto> getFeedbackListByPost(Long postId) {
+    @org.springframework.transaction.annotation.Transactional(readOnly = true)
+    public List<FeedbackResponseDto> getFeedbackListByPost(Long postId, String currentUsername) {
+        User currentUser = getUserOrNull(currentUsername);
+
         return feedbackRepository.findByPost_PostId(postId).stream()
-                .map(this::convertToDto)
+                .map(feedback -> convertToDto(feedback, currentUser))
                 .collect(Collectors.toList());
     }
 
@@ -302,34 +319,27 @@ public class FeedbackService {
 
     // 마이페이지: 특정 사용자의 피드백 페이징
     @org.springframework.transaction.annotation.Transactional(readOnly = true)
-    public Page<FeedbackResponseDto> getFeedbacksByUserId(Long userId, Pageable pageable) {
+    public Page<FeedbackResponseDto> getFeedbacksByUserId(Long userId, Pageable pageable, String currentUsername) {
+        User currentUser = getUserOrNull(currentUsername);
+
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
         Page<Feedback> feedbacks = feedbackRepository.findByUserOrderByCreatedAtDesc(user, pageable);
-        return feedbacks.map(this::convertToDto);
+
+        return feedbacks.map(feedback -> convertToDto(feedback, currentUser));
     }
 
     // 마이페이지: 사용자 피드백 최근 4개
     @org.springframework.transaction.annotation.Transactional(readOnly = true)
-    public List<FeedbackResponseDto> getRecentFeedbacksByUserId(Long userId) {
+    public List<FeedbackResponseDto> getRecentFeedbacksByUserId(Long userId, String currentUsername) {
+        User currentUser = getUserOrNull(currentUsername);
+
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
         List<Feedback> feedbacks = feedbackRepository.findFirst4ByUserOrderByCreatedAtDesc(user);
+
         return feedbacks.stream()
-                .map(this::convertToDto)
+                .map(feedback -> convertToDto(feedback, currentUser))
                 .collect(Collectors.toList());
     }
-
-    // 주간 피드백
-    public int getThisWeekFeedbackCount() {
-        LocalDate today = LocalDate.now();
-        LocalDate monday = today.with(DayOfWeek.MONDAY);
-        LocalDate sunday = today.with(DayOfWeek.SUNDAY);
-
-        LocalDateTime start = monday.atStartOfDay();
-        LocalDateTime end = sunday.atTime(23, 59, 59);
-
-        return feedbackRepository.countByCreatedAtBetween(start, end);
-    }
-
 }

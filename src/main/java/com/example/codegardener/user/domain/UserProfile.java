@@ -15,9 +15,6 @@ import lombok.NoArgsConstructor;
 public class UserProfile {
 
     @Id
-    @Column(name = "user_id")
-    private Long userProfileId;
-
     @OneToOne(fetch = FetchType.LAZY)
     @MapsId
     @JoinColumn(name = "user_id")

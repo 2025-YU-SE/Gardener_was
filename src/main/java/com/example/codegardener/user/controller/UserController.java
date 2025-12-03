@@ -176,35 +176,43 @@ public class UserController {
 
     @GetMapping("/{userId}/posts/recent")
     public ResponseEntity<List<PostResponseDto>> getUserRecentPosts(
-            @PathVariable Long userId
+            @PathVariable Long userId,
+            @AuthenticationPrincipal UserDetails userDetails
     ) {
-        List<PostResponseDto> posts = postService.getRecentPostsByUserId(userId);
+        String currentUsername = (userDetails != null) ? userDetails.getUsername() : null;
+        List<PostResponseDto> posts = postService.getRecentPostsByUserId(userId, currentUsername);
         return ResponseEntity.ok(posts);
     }
 
     @GetMapping("/{userId}/posts")
     public ResponseEntity<Page<PostResponseDto>> getUserPosts(
             @PathVariable Long userId,
-            @PageableDefault(size = 10, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable
+            @PageableDefault(size = 10, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable,
+            @AuthenticationPrincipal UserDetails userDetails
     ) {
-        Page<PostResponseDto> postPage = postService.getPostsByUserId(userId, pageable);
+        String currentUsername = (userDetails != null) ? userDetails.getUsername() : null;
+        Page<PostResponseDto> postPage = postService.getPostsByUserId(userId, pageable, currentUsername);
         return ResponseEntity.ok(postPage);
     }
 
     @GetMapping("/{userId}/feedbacks/recent")
     public ResponseEntity<List<FeedbackResponseDto>> getUserRecentFeedbacks(
-            @PathVariable Long userId
+            @PathVariable Long userId,
+            @AuthenticationPrincipal UserDetails userDetails
     ) {
-        List<FeedbackResponseDto> feedbacks = feedbackService.getRecentFeedbacksByUserId(userId);
+        String currentUsername = (userDetails != null) ? userDetails.getUsername() : null;
+        List<FeedbackResponseDto> feedbacks = feedbackService.getRecentFeedbacksByUserId(userId, currentUsername);
         return ResponseEntity.ok(feedbacks);
     }
 
     @GetMapping("/{userId}/feedbacks")
     public ResponseEntity<Page<FeedbackResponseDto>> getUserFeedbacks(
             @PathVariable Long userId,
-            @PageableDefault(size = 10, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable
+            @PageableDefault(size = 10, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable,
+            @AuthenticationPrincipal UserDetails userDetails
     ) {
-        Page<FeedbackResponseDto> feedbackPage = feedbackService.getFeedbacksByUserId(userId, pageable);
+        String currentUsername = (userDetails != null) ? userDetails.getUsername() : null;
+        Page<FeedbackResponseDto> feedbackPage = feedbackService.getFeedbacksByUserId(userId, pageable, currentUsername);
         return ResponseEntity.ok(feedbackPage);
     }
 
@@ -212,9 +220,7 @@ public class UserController {
     public ResponseEntity<List<PostResponseDto>> getMyRecentScraps(
             @AuthenticationPrincipal UserDetails userDetails
     ) {
-        if (userDetails == null) {
-            throw new AccessDeniedException("로그인이 필요합니다.");
-        }
+        if (userDetails == null) throw new AccessDeniedException("로그인이 필요합니다.");
         List<PostResponseDto> scraps = postService.getRecentScrappedPostsByUsername(userDetails.getUsername());
         return ResponseEntity.ok(scraps);
     }
@@ -224,9 +230,7 @@ public class UserController {
             @AuthenticationPrincipal UserDetails userDetails,
             @PageableDefault(size = 10, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable
     ) {
-        if (userDetails == null) {
-            throw new AccessDeniedException("로그인이 필요합니다.");
-        }
+        if (userDetails == null) throw new AccessDeniedException("로그인이 필요합니다.");
         Page<PostResponseDto> scrapPage = postService.getScrappedPostsByUsername(userDetails.getUsername(), pageable);
         return ResponseEntity.ok(scrapPage);
     }

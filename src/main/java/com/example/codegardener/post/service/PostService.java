@@ -12,16 +12,15 @@ import com.example.codegardener.post.repository.PostRepository;
 import com.example.codegardener.post.repository.PostScrapRepository;
 import com.example.codegardener.user.domain.User;
 import com.example.codegardener.user.domain.Role;
-import com.example.codegardener.user.domain.UserProfile;
 import com.example.codegardener.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.*;
-import org.springframework.security.access.AccessDeniedException;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.DayOfWeek;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -38,11 +37,20 @@ public class PostService {
     private final PostScrapRepository postScrapRepository;
     private final FeedbackRepository feedbackRepository;
 
-    private PostResponseDto convertToDto(Post post) {
+    private PostResponseDto convertToDto(Post post, User currentUser) {
         long likes = postLikeRepository.countByPost(post);
         long scraps = postScrapRepository.countByPost(post);
         long feedbacks = feedbackRepository.countByPost(post);
-        return PostResponseDto.of(post, likes, scraps, feedbacks);
+
+        boolean liked = (currentUser != null) && postLikeRepository.existsByUserAndPost(currentUser, post);
+        boolean scrapped = (currentUser != null) && postScrapRepository.existsByUserAndPost(currentUser, post);
+
+        return PostResponseDto.of(post, likes, scraps, feedbacks, liked, scrapped);
+    }
+
+    private User getUserOrNull(String username) {
+        if (username == null) return null;
+        return userRepository.findByUserName(username).orElse(null);
     }
 
     // ====================== CRUD ======================
@@ -67,31 +75,25 @@ public class PostService {
                 .build();
 
         Post saved = postRepository.save(p);
-
         log.info("[POST] saved postId={}", saved.getPostId());
-        return convertToDto(saved);
+
+        return convertToDto(saved, author);
     }
 
     @Transactional(readOnly = true)
     public List<PostResponseDto> list() {
         return postRepository.findAll()
                 .stream()
-                .map(this::convertToDto)
+                .map(post -> convertToDto(post, null))
                 .toList();
     }
 
     // ====================== 목록(페이징) 통합 메서드 ======================
 
-    /**
-     * 게시글 목록 페이징 조회
-     *
-     * @param page         0-based page index
-     * @param size         page size (1 ~ 50)
-     * @param contentsType null이면 전체, true/false 로 필터링
-     * @param sortBy       "views", "feedback", 그 외는 "createdAt" 기준 최신순
-     */
     @Transactional(readOnly = true)
-    public Page<PostResponseDto> getPostList(int page, int size, Boolean contentsType, String sortBy) {
+    public Page<PostResponseDto> getPostList(int page, int size, Boolean contentsType, String sortBy, String currentUsername) {
+        User currentUser = getUserOrNull(currentUsername); // [추가]
+
         page = Math.max(page, 0);
         size = Math.min(Math.max(size, 1), 50);
 
@@ -112,16 +114,19 @@ public class PostService {
                     : postRepository.findByContentsType(contentsType, pageable);
         }
 
-        return postPage.map(this::convertToDto);
+        return postPage.map(post -> convertToDto(post, currentUser));
     }
 
     // ====================== 단건 조회 ======================
 
     @Transactional(readOnly = true)
-    public PostResponseDto get(Long id) {
+    public PostResponseDto get(Long id, String currentUsername) {
+        User currentUser = getUserOrNull(currentUsername);
+
         Post p = postRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("게시물이 존재하지 않습니다."));
-        return convertToDto(p);
+
+        return convertToDto(p, currentUser);
     }
 
     @Transactional
@@ -149,7 +154,7 @@ public class PostService {
         p.setLangTags(normalizeCsv(dto.getLanguages()));
         p.setStackTags(normalizeCsv(dto.getStacks()));
 
-        return convertToDto(p);
+        return convertToDto(p, currentUser);
     }
 
     @Transactional
@@ -164,7 +169,7 @@ public class PostService {
         boolean isAdmin = currentUser.getRole() == Role.ADMIN;
         boolean isOwner = Objects.equals(ownerId, currentUser.getUserId());
 
-        if (!isOwner && !isAdmin) { // 본인도 아니고 관리자도 아니면
+        if (!isOwner && !isAdmin) {
             throw new IllegalStateException("삭제 권한이 없습니다.");
         }
 
@@ -183,12 +188,15 @@ public class PostService {
             Boolean contentsType,
             int page,
             int size,
-            String sortKey
+            String sortKey,
+            String currentUsername
     ) {
+        User currentUser = getUserOrNull(currentUsername);
+
         page = Math.max(page, 0);
         size = Math.min(Math.max(size, 1), 50);
 
-        Pageable pageable = PageRequest.of(page, size); // 정렬은 네이티브 쿼리에서 처리
+        Pageable pageable = PageRequest.of(page, size);
 
         String qLike = buildLikeParam(q);
         List<String> langList  = mergeParamsToList(languages, langsCsv);
@@ -206,15 +214,17 @@ public class PostService {
                 pageable
         );
 
-        return data.map(this::convertToDto);
+        return data.map(post -> convertToDto(post, currentUser));
     }
 
     // ====================== AI 피드백 ======================
 
     @Transactional
-    public PostResponseDto generateAiFeedback(Long postId, Long requesterId) {
-        if (requesterId != null) {
-            log.debug("[AI] generate request by userId={} for postId={}", requesterId, postId);
+    public PostResponseDto generateAiFeedback(Long postId, String currentUsername) {
+        User currentUser = getUserOrNull(currentUsername); // 요청자 정보
+
+        if (currentUser != null) {
+            log.debug("[AI] generate request by username={} for postId={}", currentUsername, postId);
         }
 
         Post p = postRepository.findById(postId)
@@ -223,7 +233,8 @@ public class PostService {
         String aiText = aiFeedbackService.generateTextForPost(postId);
         p.setAiFeedback(aiText);
         log.info("[AI] Feedback generated manually for postId={}", postId);
-        return convertToDto(p);
+
+        return convertToDto(p, currentUser);
     }
 
     @Transactional(readOnly = true)
@@ -340,7 +351,8 @@ public class PostService {
         User user = userRepository.findByUserName(username)
                 .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
         Page<PostScrap> scraps = postScrapRepository.findAllByUser(user, pageable);
-        return scraps.map(scrap -> convertToDto(scrap.getPost()));
+
+        return scraps.map(scrap -> convertToDto(scrap.getPost(), user));
     }
 
     // 마이페이지: 사용자가 최근 스크랩한 게시물 4개
@@ -349,27 +361,37 @@ public class PostService {
         User user = userRepository.findByUserName(username)
                 .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
         List<PostScrap> scraps = postScrapRepository.findFirst4ByUserOrderByCreatedAtDesc(user);
-        return scraps.stream().map(scrap -> convertToDto(scrap.getPost())).collect(Collectors.toList());
+
+        return scraps.stream()
+                .map(scrap -> convertToDto(scrap.getPost(), user))
+                .collect(Collectors.toList());
     }
 
     // 마이페이지: 사용자가 등록한 게시물 페이징
     @Transactional(readOnly = true)
-    public Page<PostResponseDto> getPostsByUserId(Long userId, Pageable pageable) {
+    public Page<PostResponseDto> getPostsByUserId(Long userId, Pageable pageable, String currentUsername) {
+        User currentUser = getUserOrNull(currentUsername);
         Page<Post> posts = postRepository.findByUser_UserIdOrderByCreatedAtDesc(userId, pageable);
-        return posts.map(this::convertToDto);
+        return posts.map(post -> convertToDto(post, currentUser));
     }
 
     // 마이페이지: 사용자가 최근 등록한 게시물 4개
     @Transactional(readOnly = true)
-    public List<PostResponseDto> getRecentPostsByUserId(Long userId) {
+    public List<PostResponseDto> getRecentPostsByUserId(Long userId, String currentUsername) {
+        User currentUser = getUserOrNull(currentUsername);
         List<Post> posts = postRepository.findFirst4ByUser_UserIdOrderByCreatedAtDesc(userId);
-        return posts.stream().map(this::convertToDto).collect(Collectors.toList());
+        return posts.stream()
+                .map(post -> convertToDto(post, currentUser))
+                .collect(Collectors.toList());
     }
 
-    // 좋아요 기준 인기 게시글 4개
+    // 좋아요 기준 인기 게시글 (MainPageService 등에서 사용 시 currentUsername 전달 필요)
     @Transactional(readOnly = true)
-    public List<PostResponseDto> getPopularPosts(Boolean contentsType) {
+    public List<PostResponseDto> getPopularPosts(Boolean contentsType, String currentUsername) {
+        User currentUser = getUserOrNull(currentUsername);
         List<Post> popularPosts = postRepository.findTop7ByLikes(contentsType);
-        return popularPosts.stream().map(this::convertToDto).collect(Collectors.toList());
+        return popularPosts.stream()
+                .map(post -> convertToDto(post, currentUser))
+                .collect(Collectors.toList());
     }
 }

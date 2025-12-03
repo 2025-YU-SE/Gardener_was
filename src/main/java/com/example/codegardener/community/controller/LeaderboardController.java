@@ -1,5 +1,6 @@
 package com.example.codegardener.community.controller;
 
+import com.example.codegardener.community.dto.LeaderboardSummaryDto;
 import com.example.codegardener.community.service.LeaderboardService;
 import com.example.codegardener.user.dto.UserResponseDto;
 import lombok.RequiredArgsConstructor;
@@ -19,6 +20,12 @@ import java.util.List;
 public class LeaderboardController {
 
     private final LeaderboardService leaderboardService;
+
+    @GetMapping("/weekly-stats")
+    public ResponseEntity<LeaderboardSummaryDto> getLeaderboardStats() {
+        LeaderboardSummaryDto stats = leaderboardService.getWeeklyStats();
+        return ResponseEntity.ok(stats);
+    }
 
     @GetMapping("/top3")
     public ResponseEntity<List<UserResponseDto>> getTop3Leaderboard(

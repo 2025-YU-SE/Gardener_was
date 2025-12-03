@@ -20,4 +20,5 @@ public interface PostScrapRepository extends JpaRepository<PostScrap, Long> {
     List<PostScrap> findFirst4ByUserOrderByCreatedAtDesc(User user);
 
     long countByPost(Post post);
+    boolean existsByUserAndPost(User user, Post post);
 }

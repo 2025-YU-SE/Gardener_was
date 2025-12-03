@@ -45,28 +45,32 @@ public class PostController {
 
     /** 게시물 상세 */
     @GetMapping("/{id}")
-    public ResponseEntity<PostResponseDto> get(@PathVariable Long id) {
-        return ResponseEntity.ok(postService.get(id));
+    public ResponseEntity<PostResponseDto> get(
+            @PathVariable Long id,
+            @AuthenticationPrincipal UserDetails userDetails
+    ) {
+        String currentUsername = (userDetails != null) ? userDetails.getUsername() : null;
+        return ResponseEntity.ok(postService.get(id, currentUsername));
     }
 
     /**
      * 페이징 목록
-     * contentsType: null=전체 / true=개발 / false=코테
-     * order: recent(최신순), popular(조회수), feedback(피드백순)
      */
     @GetMapping
     public ResponseEntity<Page<PostResponseDto>> getPostList(
             @RequestParam(required = false) Boolean contentsType,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
-            @RequestParam(name = "order", defaultValue = "recent") String order
+            @RequestParam(name = "order", defaultValue = "recent") String order,
+            @AuthenticationPrincipal UserDetails userDetails
     ) {
+        String currentUsername = (userDetails != null) ? userDetails.getUsername() : null;
         String sortBy = mapOrderToSortKey(order);
         int safePage = normalizePage(page);
         int safeSize = normalizeSize(size);
 
         Page<PostResponseDto> postPage =
-                postService.getPostList(safePage, safeSize, contentsType, sortBy);
+                postService.getPostList(safePage, safeSize, contentsType, sortBy, currentUsername);
 
         return ResponseEntity.ok(postPage);
     }
@@ -109,8 +113,11 @@ public class PostController {
             @RequestParam(required = false) Boolean contentsType,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
-            @RequestParam(name = "order", defaultValue = "recent") String order
+            @RequestParam(name = "order", defaultValue = "recent") String order,
+            @AuthenticationPrincipal UserDetails userDetails // [추가]
     ) {
+        String currentUsername = (userDetails != null) ? userDetails.getUsername() : null;
+
         String sort = switch (order.toLowerCase()) {
             case "popular"  -> "views";
             case "feedback" -> "feedback";
@@ -122,7 +129,7 @@ public class PostController {
 
         Page<PostResponseDto> result = postService.discoverAdvanced(
                 q, languages, langsCsv, stacks, stacksCsv, contentsType,
-                safePage, safeSize, sort
+                safePage, safeSize, sort, currentUsername
         );
 
         return ResponseEntity.ok(result);
@@ -132,9 +139,10 @@ public class PostController {
     @PostMapping("/{id}/ai")
     public ResponseEntity<PostResponseDto> regenerateAi(
             @PathVariable Long id,
-            @RequestParam(required = false) Long requesterId
+            @AuthenticationPrincipal UserDetails userDetails
     ) {
-        PostResponseDto dto = postService.generateAiFeedback(id, requesterId);
+        String currentUsername = (userDetails != null) ? userDetails.getUsername() : null;
+        PostResponseDto dto = postService.generateAiFeedback(id, currentUsername);
         return ResponseEntity.ok(dto);
     }
 

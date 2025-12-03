@@ -36,6 +36,14 @@ public class User {
     @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private UserProfile userProfile;
 
+    @Column(nullable = false, updatable = false)
+    private LocalDateTime createdAt;
+
     @Column(name = "deleted_at")
     private LocalDateTime deletedAt;
+
+    @PrePersist
+    protected void onCreate() {
+        this.createdAt = LocalDateTime.now();
+    }
 }

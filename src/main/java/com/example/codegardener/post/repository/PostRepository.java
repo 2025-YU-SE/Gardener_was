@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 public interface PostRepository extends JpaRepository<Post, Long> {
@@ -98,4 +99,5 @@ public interface PostRepository extends JpaRepository<Post, Long> {
     long countByUser(User user);
     Page<Post> findByUser_UserIdOrderByCreatedAtDesc(Long userId, Pageable pageable);
     List<Post> findFirst4ByUser_UserIdOrderByCreatedAtDesc(Long userId);
+    long countByCreatedAtBetween(LocalDateTime start, LocalDateTime end);
 }

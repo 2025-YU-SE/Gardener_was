@@ -66,18 +66,27 @@ public class FeedbackController {
      * ✅ [GET] 피드백 상세조회 (라인피드백 + 댓글 포함)
      */
     @GetMapping("/{feedbackId}")
-    public ResponseEntity<FeedbackDetailResponseDto> getFeedbackDetail(@PathVariable Long feedbackId) {
-        return ResponseEntity.ok(feedbackService.getFeedbackDetail(feedbackId));
+    public ResponseEntity<FeedbackDetailResponseDto> getFeedbackDetail(
+            @PathVariable Long feedbackId,
+            @AuthenticationPrincipal UserDetails userDetails
+    ) {
+        String currentUsername = (userDetails != null) ? userDetails.getUsername() : null;
+
+        return ResponseEntity.ok(feedbackService.getFeedbackDetail(feedbackId, currentUsername));
     }
 
     /**
      * ✅ [GET] 게시물별 피드백 목록 조회
      */
     @GetMapping("/post/{postId}")
-    public ResponseEntity<List<FeedbackResponseDto>> getFeedbackListByPost(@PathVariable Long postId) {
-        return ResponseEntity.ok(feedbackService.getFeedbackListByPost(postId));
-    }
+    public ResponseEntity<List<FeedbackResponseDto>> getFeedbackListByPost(
+            @PathVariable Long postId,
+            @AuthenticationPrincipal UserDetails userDetails
+    ) {
+        String currentUsername = (userDetails != null) ? userDetails.getUsername() : null;
 
+        return ResponseEntity.ok(feedbackService.getFeedbackListByPost(postId, currentUsername));
+    }
     /**
      * ✅ [POST] 피드백 채택
      */
@@ -196,11 +205,5 @@ public class FeedbackController {
             @PathVariable Long feedbackId
     ) {
         return ResponseEntity.ok(feedbackService.getCommentsByFeedback(feedbackId));
-    }
-
-    // 이번 주 피드백 수 API
-    @GetMapping("/week")
-    public int getWeeklyFeedbackCount() {
-        return feedbackService.getThisWeekFeedbackCount();
     }
 }

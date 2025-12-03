@@ -24,13 +24,14 @@ public class FeedbackDetailResponseDto {
     private Double rating;
     private Boolean adoptedTF;
     private Long likesCount;
+    private boolean liked;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
     private List<LineFeedbackDto> lineFeedbacks;
     private List<FeedbackCommentDto> comments;
 
-    public static FeedbackDetailResponseDto of(Feedback feedback, long likesCount) {
+    public static FeedbackDetailResponseDto of(Feedback feedback, long likesCount, boolean liked) {
         String userPicture = null;
         UserProfile profile = feedback.getUser().getUserProfile();
         if (profile != null) {
@@ -47,6 +48,7 @@ public class FeedbackDetailResponseDto {
                 .rating(feedback.getRating())
                 .adoptedTF(feedback.getAdoptedTF())
                 .likesCount(likesCount)
+                .liked(liked)
                 .createdAt(feedback.getCreatedAt())
                 .updatedAt(feedback.getUpdatedAt())
                 .lineFeedbacks(

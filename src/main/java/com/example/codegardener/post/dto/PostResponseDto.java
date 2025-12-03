@@ -30,7 +30,9 @@ public class PostResponseDto {
     private final String problemStatement;
 
     private final long likesCount;
+    private final boolean liked;
     private final long scrapCount;
+    private final boolean scrapped;
     private final long feedbackCount;
     private final int views;
 
@@ -39,7 +41,7 @@ public class PostResponseDto {
 
     private final String aiFeedback;
 
-    public static PostResponseDto of(Post post, long likesCount, long scrapCount, long feedbackCount){
+    public static PostResponseDto of(Post post, long likesCount, long scrapCount, long feedbackCount, boolean liked, boolean scrapped){
         String userPicture = null;
         UserProfile profile = post.getUser().getUserProfile();
         if (profile != null) {
@@ -61,7 +63,9 @@ public class PostResponseDto {
                 .githubRepoUrl(post.getGithubRepoUrl())
                 .problemStatement(post.getProblemStatement())
                 .likesCount(likesCount)
+                .liked(liked)
                 .scrapCount(scrapCount)
+                .scrapped(scrapped)
                 .feedbackCount(feedbackCount)
                 .views(post.getViews())
                 .createdAt(post.getCreatedAt())

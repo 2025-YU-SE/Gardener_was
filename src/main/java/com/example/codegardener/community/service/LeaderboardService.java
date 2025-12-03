@@ -1,5 +1,6 @@
 package com.example.codegardener.community.service;
 
+import com.example.codegardener.community.dto.LeaderboardSummaryDto;
 import com.example.codegardener.community.repository.LeaderboardRepository;
 import com.example.codegardener.feedback.repository.FeedbackRepository;
 import com.example.codegardener.post.repository.PostRepository;
@@ -13,6 +14,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.DayOfWeek;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.List;
@@ -27,6 +30,25 @@ public class LeaderboardService {
     private final PostRepository postRepository;
     private final FeedbackRepository feedbackRepository;
     private final LeaderboardRepository leaderboardRepository;
+
+    public LeaderboardSummaryDto getWeeklyStats() {
+        LocalDate today = LocalDate.now();
+        LocalDate monday = today.with(DayOfWeek.MONDAY);
+        LocalDate sunday = today.with(DayOfWeek.SUNDAY);
+
+        LocalDateTime start = monday.atStartOfDay();
+        LocalDateTime end = sunday.atTime(23, 59, 59);
+
+        long newUsers = userRepository.countByCreatedAtBetween(start, end);
+        long newPosts = postRepository.countByCreatedAtBetween(start, end);
+        long newFeedbacks = feedbackRepository.countByCreatedAtBetween(start, end);
+
+        return LeaderboardSummaryDto.builder()
+                .newUsersCount(newUsers)
+                .newPostsCount(newPosts)
+                .newFeedbacksCount(newFeedbacks)
+                .build();
+    }
 
     private UserResponseDto convertToDto(User user) {
         long postCount = postRepository.countByUser(user);

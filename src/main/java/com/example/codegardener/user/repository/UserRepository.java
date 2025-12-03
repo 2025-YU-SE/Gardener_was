@@ -8,6 +8,7 @@ import org.springframework.data.repository.query.Param;
 
 import com.example.codegardener.user.domain.User;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -24,4 +25,6 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     @Query("SELECT u FROM User u LEFT JOIN FETCH u.userProfile WHERE u.userId IN :userIds")
     List<User> findAllByIdWithProfile(@Param("userIds") List<Long> userIds);
+
+    long countByCreatedAtBetween(LocalDateTime start, LocalDateTime end);
 }
