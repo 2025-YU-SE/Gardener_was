@@ -57,9 +57,6 @@ public class Post {
     @Column(columnDefinition = "LONGTEXT")
     private String aiFeedback;
 
-    @Column(nullable = false)
-    private int views = 0;
-
     @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Feedback> feedbacks = new ArrayList<>();
 
@@ -74,6 +71,12 @@ public class Post {
 
     @Column(nullable = false)
     private LocalDateTime modifiedAt;
+
+    @Column(nullable = false)
+    private int views = 0;
+    public void increaseViews() {
+        this.views++;
+    }
 
     @PrePersist
     protected void onCreate() {

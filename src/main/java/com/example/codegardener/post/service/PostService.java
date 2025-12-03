@@ -119,13 +119,14 @@ public class PostService {
 
     // ====================== 단건 조회 ======================
 
-    @Transactional(readOnly = true)
+    @Transactional
     public PostResponseDto get(Long id, String currentUsername) {
         User currentUser = getUserOrNull(currentUsername);
 
         Post p = postRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("게시물이 존재하지 않습니다."));
 
+        p.increaseViews();
         return convertToDto(p, currentUser);
     }
 
