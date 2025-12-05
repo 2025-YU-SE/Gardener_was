@@ -42,8 +42,7 @@ public class PostController {
     }
 
     // ====================== READ ======================
-
-    /** 게시물 상세 */
+    //게시물 상세
     @GetMapping("/{id}")
     public ResponseEntity<PostResponseDto> get(
             @PathVariable Long id,
@@ -53,9 +52,7 @@ public class PostController {
         return ResponseEntity.ok(postService.get(id, currentUsername));
     }
 
-    /**
-     * 페이징 목록
-     */
+    //페이징 목록
     @GetMapping
     public ResponseEntity<Page<PostResponseDto>> getPostList(
             @RequestParam(required = false) Boolean contentsType,
@@ -180,7 +177,7 @@ public class PostController {
         return ResponseEntity.ok().build();
     }
 
-    // ====================== private 헬퍼 메서드들 ======================
+    // ====================== private 헬퍼 메서드 ======================
 
     private String mapOrderToSortKey(String order) {
         if (order == null) return "latest";
