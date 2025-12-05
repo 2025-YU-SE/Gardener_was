@@ -35,8 +35,8 @@ import java.util.List;
 public class UserController {
 
     private final UserService userService;
-    private final FeedbackService feedbackService;
     private final PostService postService;
+    private final FeedbackService feedbackService;
 
     @PostMapping("/signup")
     public ResponseEntity<UserResponseDto> signUp(@RequestBody SignUpRequestDto signUpRequestDto) {
@@ -79,7 +79,6 @@ public class UserController {
         return ResponseEntity.ok(userResponseDto);
     }
 
-    // 출석 체크
     @PostMapping("/attendance")
     public ResponseEntity<String> checkAttendance(
             @AuthenticationPrincipal UserDetails userDetails
@@ -140,10 +139,6 @@ public class UserController {
         }
     }
 
-    // 마이페이지
-
-    // 프로필 사진 등록 및 수정
-    // Content-Type: multipart/form-data
     @PutMapping(value = "/profile-picture", consumes = "multipart/form-data")
     public ResponseEntity<String> updateProfilePicture(
             @RequestParam("file") MultipartFile file,
@@ -161,7 +156,6 @@ public class UserController {
         }
     }
 
-    // 프로필 사진 삭제 (기본값으로 초기화)
     @DeleteMapping("/profile-picture")
     public ResponseEntity<String> deleteProfilePicture(
             @AuthenticationPrincipal UserDetails userDetails

@@ -2,19 +2,13 @@ package com.example.codegardener.user.service;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.List;
 import java.util.UUID;
 
 import com.example.codegardener.feedback.repository.FeedbackRepository;
-import com.example.codegardener.post.dto.PostResponseDto;
 import com.example.codegardener.post.repository.PostRepository;
-import com.example.codegardener.post.service.PostService;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
 import com.example.codegardener.global.jwt.TokenBlacklist;
 import com.example.codegardener.global.jwt.TokenBlacklistRepository;
 import org.springframework.security.access.AccessDeniedException;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -56,7 +50,6 @@ public class UserService {
     private static final String GRADE_SAGE = "숲의 현자";
     private static final String GRADE_DELETED = "탈퇴한 사용자";
 
-    // 회원 가입
     @Transactional
     public UserResponseDto signUp(SignUpRequestDto signUpRequestDto) {
         if (userRepository.findByUserName(signUpRequestDto.getUserName()).isPresent()) {
