@@ -118,27 +118,6 @@ public class UserController {
         }
     }
 
-    @DeleteMapping("/{userId}/admin")
-    public ResponseEntity<String> deleteUserByAdmin(
-            @PathVariable Long userId,
-            @AuthenticationPrincipal UserDetails adminUserDetails
-    ) {
-        if (adminUserDetails == null) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("관리자 인증이 필요합니다.");
-        }
-
-        try {
-            userService.deleteUserByAdmin(userId, adminUserDetails.getUsername());
-            return ResponseEntity.ok("사용자(ID: " + userId + ")가 삭제되었습니다.");
-        } catch (AccessDeniedException e) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(e.getMessage());
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("사용자 삭제 중 오류 발생");
-        }
-    }
-
     @PutMapping(value = "/profile-picture", consumes = "multipart/form-data")
     public ResponseEntity<String> updateProfilePicture(
             @RequestParam("file") MultipartFile file,

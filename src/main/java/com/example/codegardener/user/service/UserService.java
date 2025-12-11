@@ -263,29 +263,6 @@ public class UserService {
         return "출석 완료! 50 포인트가 지급되었습니다.";
     }
 
-    // ===== 관리자 기능 =====
-    @Transactional
-    public void deleteUserByAdmin(Long userIdToDelete, String adminUsername) {
-        User adminUser = userRepository.findByUserName(adminUsername)
-                .orElseThrow(() -> new IllegalArgumentException("관리자 계정을 찾을 수 없습니다."));
-
-        if (adminUser.getRole() != Role.ADMIN) {
-            throw new AccessDeniedException("사용자 삭제 권한이 없습니다.");
-        }
-
-        User userToDelete = userRepository.findById(userIdToDelete)
-                .orElseThrow(() -> new IllegalArgumentException("삭제할 사용자를 찾을 수 없습니다. ID: " + userIdToDelete));
-
-        if (userToDelete.getUserId().equals(adminUser.getUserId())) {
-            throw new IllegalArgumentException("자기 자신을 삭제할 수 없습니다.");
-        }
-
-        log.warn("[ADMIN] Admin '{}' is deleting user '{}' (userId={}) (Soft Delete)",
-                adminUsername, userToDelete.getUserName(), userIdToDelete);
-
-        anonymizeAndSoftDelete(userToDelete);
-    }
-
     // 4. Soft Delete 및 익명화 처리를 위한 헬퍼 메소드
     /**
      * 사용자를 '탈퇴' 상태로 만들고 개인정보를 익명화
